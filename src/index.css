@@ -1,0 +1,74 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background-color: #070a11;
+    color: #f8fafc;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Glass & Glowing Utilities for Research Aesthetics */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(34, 50, 77, 0.6);
+}
+
+.glass-panel-hover {
+  transition: all 0.2s ease-in-out;
+}
+.glass-panel-hover:hover {
+  border-color: rgba(6, 182, 212, 0.4);
+  box-shadow: 0 4px 20px -2px rgba(6, 182, 212, 0.15);
+}
+
+/* Glowing Accents */
+.glow-cyan {
+  box-shadow: 0 0 15px -3px rgba(6, 182, 212, 0.35);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 15px -3px rgba(16, 185, 129, 0.35);
+}
+
+/* Sleek Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #070a11;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #06b6d4;
+}
+
+/* Chart Tooltip Customization */
+.recharts-default-tooltip {
+  background-color: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(34, 50, 77, 0.8) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+  color: #f8fafc !important;
+}
+
+/* Animation utilities */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
