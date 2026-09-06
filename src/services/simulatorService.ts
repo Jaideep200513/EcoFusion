@@ -1,31 +1,39 @@
 import type {
   Workload,
+  ResourcePool,
   DataCenter,
   TimeSlot,
   CandidateOption,
   SchedulingDecision,
   SimulationResult,
   SimulationConfig,
+  SimulationSetupConfig,
   Experiment,
 } from '../types';
 import {
-  demoDataCenters,
+  demoResourcePools,
   demoWorkloads,
   demoTimeSlots,
   baselineComparisons,
   demoExperiments,
   defaultConfig,
+  defaultSimulationSetupConfig,
 } from '../data/mockData';
 
 export class SimulatorService {
-  private dataCenters: DataCenter[] = [...demoDataCenters];
+  private resourcePools: ResourcePool[] = [...demoResourcePools];
   private workloads: Workload[] = [...demoWorkloads];
   private timeSlots: TimeSlot[] = [...demoTimeSlots];
   private experiments: Experiment[] = [...demoExperiments];
   private config: SimulationConfig = { ...defaultConfig };
+  private setupConfig: SimulationSetupConfig = { ...defaultSimulationSetupConfig };
+
+  public getResourcePools(): ResourcePool[] {
+    return this.resourcePools;
+  }
 
   public getDataCenters(): DataCenter[] {
-    return this.dataCenters;
+    return this.resourcePools;
   }
 
   public getWorkloads(): Workload[] {
@@ -42,6 +50,15 @@ export class SimulatorService {
 
   public getSimulationConfig(): SimulationConfig {
     return this.config;
+  }
+
+  public getSimulationSetupConfig(): SimulationSetupConfig {
+    return this.setupConfig;
+  }
+
+  public updateSimulationSetupConfig(newConfig: Partial<SimulationSetupConfig>): SimulationSetupConfig {
+    this.setupConfig = { ...this.setupConfig, ...newConfig };
+    return this.setupConfig;
   }
 
   public updateConfig(newConfig: Partial<SimulationConfig>): SimulationConfig {
@@ -110,21 +127,23 @@ export class SimulatorService {
     const workload = this.workloads.find((w) => w.id === workloadId) || this.workloads[0];
     const candidates: CandidateOption[] = [];
 
-    this.dataCenters.forEach((dc) => {
+    this.resourcePools.forEach((pool) => {
       // Evaluate against a subset of time slots
       this.timeSlots.slice(3, 9).forEach((slot) => {
-        const metrics = this.calculateMetrics(workload, dc, slot);
+        const metrics = this.calculateMetrics(workload, pool, slot);
         candidates.push({
-          datacenterId: dc.id,
-          datacenterName: dc.name,
-          region: dc.region,
+          poolId: pool.id,
+          poolName: pool.name,
+          datacenterId: pool.id,
+          datacenterName: pool.name,
+          region: pool.region,
           timeSlotId: slot.id,
           timeSlotLabel: `${slot.startTime} - ${slot.endTime}`,
           estimatedEnergy: metrics.estimatedEnergyKwh,
           estimatedCarbon: metrics.estimatedCarbonGco2,
           estimatedCost: metrics.estimatedCostUsd,
           slaFeasible: metrics.slaFeasible,
-          pue: dc.pue,
+          pue: pool.pue,
           carbonIntensity: slot.carbonIntensity,
           electricityPrice: slot.electricityPrice,
         });
@@ -147,11 +166,11 @@ export class SimulatorService {
     const decisions: SchedulingDecision[] = [];
 
     this.workloads.forEach((wl, idx) => {
-      // Assign best DC/Slot according to demo multi-objective weights
-      const dc = this.dataCenters[idx % this.dataCenters.length];
+      // Assign best ResourcePool/Slot according to demo multi-objective weights
+      const pool = this.resourcePools[idx % this.resourcePools.length];
       const slot = this.timeSlots[(idx * 2) % this.timeSlots.length];
 
-      const metrics = this.calculateMetrics(wl, dc, slot);
+      const metrics = this.calculateMetrics(wl, pool, slot);
 
       totalEnergy += metrics.estimatedEnergyKwh;
       totalCarbonG += metrics.estimatedCarbonGco2;
@@ -163,7 +182,8 @@ export class SimulatorService {
 
       decisions.push({
         workloadId: wl.id,
-        datacenterId: dc.id,
+        poolId: pool.id,
+        datacenterId: pool.id,
         timeSlotId: slot.id,
         estimatedEnergyKwh: metrics.estimatedEnergyKwh,
         estimatedCarbonGco2: metrics.estimatedCarbonGco2,

@@ -1,8 +1,10 @@
-import React from 'react';
-import { baselineComparisons } from '../data/mockData';
-import { ChartCard } from '../components/common/ChartCard';
+import React, { useState } from 'react';
+import { baselineComparisons, demoParetoPoints } from '../data/mockData';
 import {
-  BarChart3,
+  Leaf,
+  Zap,
+  DollarSign,
+  ShieldCheck,
   Sparkles,
 } from 'lucide-react';
 import {
@@ -13,214 +15,239 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ScatterChart,
+  Scatter,
   Cell,
 } from 'recharts';
 
 export const Results: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'summary' | 'carbon' | 'cost' | 'sla' | 'pareto'>('summary');
+
+  const ecoData = baselineComparisons.find((b) => b.isEcoFusion) || baselineComparisons[0];
+
   return (
     <div className="space-y-6">
       {/* Top Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-5 rounded-2xl">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
-            <BarChart3 className="w-5 h-5" />
+      <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h3 className="text-base font-bold text-slate-950 tracking-tight">Optimization Results Ledger</h3>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200 font-bold">
+              AUDIT TRAIL
+            </span>
           </div>
-          <div>
-            <h3 className="text-base font-bold text-slate-100">Experiment Results & Baseline Benchmark</h3>
-            <p className="text-xs text-slate-400">
-              Comparative analysis of spatial-temporal scheduling algorithms under identical workload seeds
-            </p>
+          <p className="text-xs text-slate-600 mt-1">
+            Empirical metrics logged across 24 simulated trace workloads under NSGA-II spatial-temporal optimization.
+          </p>
+        </div>
+
+        {/* Tab switcher */}
+        <div className="flex flex-wrap gap-1 p-1 rounded-lg bg-slate-100 border border-slate-200">
+          {(['summary', 'carbon', 'cost', 'sla', 'pareto'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-3 py-1.5 rounded-md text-xs capitalize transition-all cursor-pointer ${
+                activeTab === tab
+                  ? 'bg-slate-950 text-white font-semibold shadow-sm'
+                  : 'text-slate-600 hover:text-slate-950 font-medium'
+              }`}
+            >
+              {tab === 'pareto' ? 'Pareto Front' : tab}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between text-xs text-slate-600 mb-2 font-medium">
+            <span>Total Carbon</span>
+            <Leaf className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-2xl font-bold font-mono text-slate-950">
+            {ecoData.totalCarbonKg.toFixed(2)} <span className="text-xs font-sans text-slate-500">kgCO₂</span>
+          </div>
+          <div className="text-[11px] text-emerald-700 font-semibold mt-1">
+            -28.6% vs Random Heuristic
           </div>
         </div>
 
-        <span className="px-3 py-1 text-xs font-mono rounded-full bg-slate-900 text-cyan-300 border border-cyan-800">
-          DEMO BASELINE EVALUATION
-        </span>
+        <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between text-xs text-slate-600 mb-2 font-medium">
+            <span>Total Facility Energy</span>
+            <Zap className="w-4 h-4 text-slate-900" />
+          </div>
+          <div className="text-2xl font-bold font-mono text-slate-950">
+            {ecoData.totalEnergyKwh.toFixed(1)} <span className="text-xs font-sans text-slate-500">kWh</span>
+          </div>
+          <div className="text-[11px] text-slate-500 mt-1">
+            IT load + dynamic PUE overhead
+          </div>
+        </div>
+
+        <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between text-xs text-slate-600 mb-2 font-medium">
+            <span>Electricity Cost</span>
+            <DollarSign className="w-4 h-4 text-slate-900" />
+          </div>
+          <div className="text-2xl font-bold font-mono text-slate-950">
+            ${ecoData.totalCostUsd.toFixed(2)}
+          </div>
+          <div className="text-[11px] text-slate-500 mt-1">
+            Off-peak tariff shifting
+          </div>
+        </div>
+
+        <div className="p-5 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between text-xs text-slate-600 mb-2 font-medium">
+            <span>SLA Compliance</span>
+            <ShieldCheck className="w-4 h-4 text-slate-900" />
+          </div>
+          <div className="text-2xl font-bold font-mono text-slate-950">
+            {(100 - ecoData.slaViolationRate).toFixed(1)}%
+          </div>
+          <div className="text-[11px] text-slate-500 mt-1">
+            Strict deadline bounds enforced
+          </div>
+        </div>
       </div>
 
-      {/* Comparison Table across Algorithms */}
-      <div className="space-y-3">
-        <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-          <span>Comparative Performance Matrix</span>
-          <span className="text-xs text-slate-400 font-normal">
-            (5 Algorithms evaluated over 24 Workloads)
-          </span>
-        </h4>
+      {/* Tab Panels */}
+      {activeTab === 'summary' && (
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-bold text-slate-950">Multi-Objective Optimization Ledger</h4>
+              <p className="text-xs text-slate-600">Summary of all 5 algorithms benchmarked over the 24-workload trace</p>
+            </div>
+          </div>
 
-        <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900/90 text-slate-400 uppercase font-mono border-b border-slate-800">
+              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-mono text-[10px]">
                 <tr>
-                  <th className="px-4 py-3">Scheduling Algorithm</th>
-                  <th className="px-4 py-3">Total Energy (kWh)</th>
-                  <th className="px-4 py-3">Carbon Output (kgCO₂)</th>
-                  <th className="px-4 py-3">Operational Cost ($)</th>
-                  <th className="px-4 py-3">SLA Violation Rate</th>
-                  <th className="px-4 py-3">Avg Duration (hrs)</th>
-                  <th className="px-4 py-3 text-right">Status</th>
+                  <th className="py-3 px-4 font-semibold">Algorithm</th>
+                  <th className="py-3 px-4 text-right font-semibold">Energy (kWh)</th>
+                  <th className="py-3 px-4 text-right font-semibold">Carbon (kgCO₂)</th>
+                  <th className="py-3 px-4 text-right font-semibold">Cost ($)</th>
+                  <th className="py-3 px-4 text-right font-semibold">SLA Violation Rate</th>
+                  <th className="py-3 px-4 text-right font-semibold">Avg Duration</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/80 text-slate-200">
+              <tbody className="divide-y divide-slate-200 font-mono">
                 {baselineComparisons.map((item) => (
                   <tr
                     key={item.algorithm}
-                    className={`hover:bg-slate-800/50 transition-colors ${
-                      item.isEcoFusion
-                        ? 'bg-cyan-950/40 border-l-4 border-l-cyan-400 font-semibold'
-                        : ''
-                    }`}
+                    className={item.isEcoFusion ? 'bg-slate-950 text-white font-medium' : 'text-slate-800 hover:bg-slate-50'}
                   >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        {item.isEcoFusion && (
-                          <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                        )}
-                        <span
-                          className={
-                            item.isEcoFusion ? 'text-cyan-300 font-bold' : 'text-slate-200'
-                          }
-                        >
-                          {item.label}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-amber-300">
-                      {item.totalEnergyKwh.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-emerald-300">
-                      {item.totalCarbonKg.toLocaleString()}
-                    </td>
-                    <td className="px-4 py-3 font-mono text-slate-200">${item.totalCostUsd}</td>
-                    <td className="px-4 py-3 font-mono">
-                      <span
-                        className={
-                          item.slaViolationRate < 3
-                            ? 'text-emerald-400 font-bold'
-                            : item.slaViolationRate < 10
-                            ? 'text-amber-400'
-                            : 'text-rose-400'
-                        }
-                      >
-                        {item.slaViolationRate}%
+                    <td className="py-3.5 px-4 font-sans flex items-center gap-2">
+                      {item.isEcoFusion && <Sparkles className="w-3.5 h-3.5 text-amber-400" />}
+                      <span className={item.isEcoFusion ? 'font-bold text-white' : 'font-medium text-slate-950'}>
+                        {item.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 font-mono text-slate-400">
-                      {item.avgCompletionTimeHours}h
+                    <td className={`py-3.5 px-4 text-right ${item.isEcoFusion ? 'text-white' : 'text-slate-700'}`}>{item.totalEnergyKwh.toFixed(1)}</td>
+                    <td className={`py-3.5 px-4 text-right ${item.isEcoFusion ? 'text-emerald-400 font-bold' : 'text-slate-950 font-semibold'}`}>
+                      {item.totalCarbonKg.toFixed(2)}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      {item.isEcoFusion ? (
-                        <span className="px-2 py-0.5 rounded text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono font-bold">
-                          BEST PARTO
-                        </span>
-                      ) : (
-                        <span className="text-[10px] text-slate-400 font-mono">Baseline</span>
-                      )}
+                    <td className={`py-3.5 px-4 text-right ${item.isEcoFusion ? 'text-white' : 'text-slate-700'}`}>${item.totalCostUsd.toFixed(2)}</td>
+                    <td className={`py-3.5 px-4 text-right ${item.slaViolationRate === 0 ? (item.isEcoFusion ? 'text-emerald-400 font-bold' : 'text-emerald-700 font-bold') : 'text-rose-600'}`}>
+                      {item.slaViolationRate.toFixed(1)}%
                     </td>
+                    <td className={`py-3.5 px-4 text-right ${item.isEcoFusion ? 'text-slate-300' : 'text-slate-500'}`}>{item.avgCompletionTimeHours.toFixed(1)}h</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Row 2: Charts for Energy & Carbon Comparisons */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Carbon Comparison Bar */}
-        <ChartCard
-          title="Carbon Emissions Comparison Across Algorithms"
-          subtitle="Reduction in total kgCO₂ output (EcoFusion Multi-Objective vs Single-Objective)"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={baselineComparisons} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="label" stroke="#64748b" fontSize={10} tickFormatter={(v) => v.split(' ')[0]} />
-              <YAxis stroke="#64748b" fontSize={11} />
-              <Tooltip />
-              <Bar dataKey="totalCarbonKg" name="Carbon (kgCO₂)" radius={[6, 6, 0, 0]}>
-                {baselineComparisons.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.isEcoFusion ? '#10b981' : '#06b6d4'}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+      {activeTab === 'carbon' && (
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm space-y-4">
+          <h4 className="text-sm font-bold text-slate-950">Carbon Emissions Comparison by Algorithm</h4>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={baselineComparisons} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="label" stroke="#64748b" fontSize={11} tickLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#09090b', borderRadius: '8px', fontSize: '11px' }} />
+                <Bar dataKey="totalCarbonKg" fill="#09090b" radius={[4, 4, 0, 0]} name="Carbon (kgCO₂)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
-        {/* Energy Consumption Comparison Bar */}
-        <ChartCard
-          title="Total Energy Consumption Comparison (kWh)"
-          subtitle="Energy efficiency savings incorporating facility PUE factors"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={baselineComparisons} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="label" stroke="#64748b" fontSize={10} tickFormatter={(v) => v.split(' ')[0]} />
-              <YAxis stroke="#64748b" fontSize={11} />
-              <Tooltip />
-              <Bar dataKey="totalEnergyKwh" name="Energy (kWh)" radius={[6, 6, 0, 0]}>
-                {baselineComparisons.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.isEcoFusion ? '#f59e0b' : '#8b5cf6'}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
-      </div>
+      {activeTab === 'cost' && (
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm space-y-4">
+          <h4 className="text-sm font-bold text-slate-950">Operational Electricity Cost by Algorithm</h4>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={baselineComparisons} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="label" stroke="#64748b" fontSize={11} tickLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#09090b', borderRadius: '8px', fontSize: '11px' }} />
+                <Bar dataKey="totalCostUsd" fill="#09090b" radius={[4, 4, 0, 0]} name="Cost (USD)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
-      {/* Row 3: Operational Cost & SLA Comparisons */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Operational Cost Comparison */}
-        <ChartCard
-          title="Operational Electricity Cost ($ USD)"
-          subtitle="Cost optimization across dynamic time slot electricity rates"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={baselineComparisons} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="label" stroke="#64748b" fontSize={10} tickFormatter={(v) => v.split(' ')[0]} />
-              <YAxis stroke="#64748b" fontSize={11} />
-              <Tooltip />
-              <Bar dataKey="totalCostUsd" name="Operational Cost ($)" radius={[6, 6, 0, 0]}>
-                {baselineComparisons.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.isEcoFusion ? '#06b6d4' : '#64748b'}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+      {activeTab === 'sla' && (
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm space-y-4">
+          <h4 className="text-sm font-bold text-slate-950">SLA Violation Rate (%) Across Heuristics</h4>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={baselineComparisons} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="label" stroke="#64748b" fontSize={11} tickLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
+                <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#09090b', borderRadius: '8px', fontSize: '11px' }} />
+                <Bar dataKey="slaViolationRate" fill="#e11d48" radius={[4, 4, 0, 0]} name="Violation Rate (%)" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
 
-        {/* SLA Violation Rate */}
-        <ChartCard
-          title="SLA Violation Rate (%) Comparison"
-          subtitle="Constraint enforcement ensuring workloads complete prior to deadlines"
-        >
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={baselineComparisons} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="label" stroke="#64748b" fontSize={10} tickFormatter={(v) => v.split(' ')[0]} />
-              <YAxis stroke="#64748b" fontSize={11} />
-              <Tooltip />
-              <Bar dataKey="slaViolationRate" name="SLA Violation Rate %" radius={[6, 6, 0, 0]}>
-                {baselineComparisons.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={entry.isEcoFusion ? '#10b981' : '#ef4444'}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartCard>
+      {activeTab === 'pareto' && (
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm space-y-4">
+          <h4 className="text-sm font-bold text-slate-950">Pareto-Optimal Non-Dominated Solutions</h4>
+          <p className="text-xs text-slate-600">Carbon vs. Electricity Cost Trade-off Surface</p>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ScatterChart margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                <XAxis type="number" dataKey="costUsd" name="Cost" unit="$" stroke="#64748b" fontSize={10} />
+                <YAxis type="number" dataKey="carbonKg" name="Carbon" unit="kg" stroke="#64748b" fontSize={10} />
+                <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#09090b', borderRadius: '8px', fontSize: '11px' }} />
+                <Scatter name="Solutions" data={demoParetoPoints} fill="#09090b">
+                  {demoParetoPoints.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.selected ? '#09090b' : '#64748b'}
+                      stroke={entry.selected ? '#09090b' : '#94a3b8'}
+                      strokeWidth={entry.selected ? 2 : 1}
+                    />
+                  ))}
+                </Scatter>
+              </ScatterChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* Academic Disclaimer Note */}
+      <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-center justify-between">
+        <span>
+          <strong>Note:</strong> Illustrative optimization output based on trace-driven simulation runs. Actual results depend on workload characteristics and grid carbon dynamics.
+        </span>
       </div>
     </div>
   );

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import type { CandidateOption } from '../types';
+import type { CandidateOption, Workload } from '../types';
 import { simulatorService } from '../services/simulatorService';
-import { ChartCard } from '../components/common/ChartCard';
 import { demoParetoPoints } from '../data/mockData';
 import {
   GitBranch,
@@ -9,8 +8,8 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  GitMerge,
   Sparkles,
+  Layers,
 } from 'lucide-react';
 import {
   ScatterChart,
@@ -25,12 +24,13 @@ import {
 
 export const Scheduling: React.FC = () => {
   const workloads = simulatorService.getWorkloads();
-  const [selectedWorkloadId, setSelectedWorkloadId] = useState<string>(workloads[0]?.id || 'WL-101');
+  const resourcePools = simulatorService.getResourcePools();
+  const timeSlots = simulatorService.getTimeSlots().slice(0, 8); // 8 slots: 00 to 07
 
+  const [selectedWorkloadId, setSelectedWorkloadId] = useState<string>(workloads[0]?.id || 'W1');
   const activeWorkload = workloads.find((w) => w.id === selectedWorkloadId) || workloads[0];
   const candidateOptions: CandidateOption[] = simulatorService.evaluateCandidateOptions(selectedWorkloadId);
 
-  // Selected candidate decision state
   const [selectedCandidate, setSelectedCandidate] = useState<CandidateOption | null>(
     candidateOptions.find((c) => c.slaFeasible) || candidateOptions[0] || null
   );
@@ -42,248 +42,364 @@ export const Scheduling: React.FC = () => {
     setSelectedCandidate(feasible || null);
   };
 
+  // Mock grid mapping for demonstration (where each workload is assigned in WHERE x WHEN)
+  const gridAssignments: { [key: string]: Workload[] } = {};
+  workloads.forEach((w, idx) => {
+    const pool = resourcePools[idx % resourcePools.length];
+    const slotIdx = (idx * 2) % timeSlots.length;
+    const slot = timeSlots[slotIdx];
+    const key = `${pool.id}-${slot.id}`;
+    if (!gridAssignments[key]) gridAssignments[key] = [];
+    gridAssignments[key].push(w);
+  });
+
   return (
     <div className="space-y-6">
       {/* Top Banner explaining WHERE + WHEN */}
-      <div className="glass-panel p-6 rounded-2xl border border-cyan-950/80 bg-gradient-to-r from-slate-900 via-slate-900/90 to-cyan-950/40">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3">
-            <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shadow-lg glow-cyan">
-              <GitBranch className="w-6 h-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-lg font-bold text-slate-100">
-                  Spatial-Temporal Scheduling Workspace
-                </h3>
-                <span className="px-2.5 py-0.5 rounded-md text-[11px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                  WHERE + WHEN
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-1 max-w-2xl">
-                Evaluate spatial placement (<strong className="text-cyan-300">WHERE</strong>: Data Center ID) and temporal execution (<strong className="text-emerald-300">WHEN</strong>: Time Slot) for cloud workloads under carbon, energy, cost, and SLA constraints.
-              </p>
-            </div>
+      <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-start gap-3.5">
+          <div className="w-10 h-10 rounded-lg bg-slate-950 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <GitBranch className="w-5 h-5" />
           </div>
-
-          <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1 shrink-0">
-            <div className="flex items-center gap-2 text-slate-400">
-              <GitMerge className="w-3.5 h-3.5 text-amber-400" />
-              <span>NSGA-II Integration:</span>
-              <span className="text-amber-400 font-semibold">Phase 2 (Week 4)</span>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold text-slate-950 tracking-tight">Spatial-Temporal Scheduling Matrix</h3>
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200 font-bold">
+                WHERE + WHEN
+              </span>
             </div>
-            <p className="text-[10px] text-slate-500">
-              Current matrix displays candidate heuristic evaluations
+            <p className="text-sm text-slate-600 mt-1.5 max-w-2xl leading-relaxed">
+              Evaluating spatial routing (<strong className="text-slate-950 font-semibold">WHERE</strong>: Regional Resource Pool) and temporal execution window (<strong className="text-slate-950 font-semibold">WHEN</strong>: Hourly Time Slot) to minimize carbon and cost while strictly respecting SLA deadlines.
             </p>
           </div>
         </div>
-      </div>
 
-      {/* Step 1: Select Workload */}
-      <div className="glass-panel p-5 rounded-xl border border-slate-800">
-        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-          Step 1: Select Workload for Scheduling Decision
-        </label>
-        <div className="flex flex-wrap gap-2">
-          {workloads.slice(0, 8).map((wl) => (
-            <button
-              key={wl.id}
-              onClick={() => handleSelectWorkload(wl.id)}
-              className={`px-3 py-2 rounded-xl text-xs font-medium transition-all flex items-center gap-2 border ${
-                selectedWorkloadId === wl.id
-                  ? 'bg-gradient-to-r from-cyan-950 to-slate-900 text-cyan-300 border-cyan-500/50 shadow-md glow-cyan'
-                  : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:bg-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <span className="font-mono text-cyan-400">{wl.id}</span>
-              <span className="truncate max-w-[140px]">{wl.name}</span>
-            </button>
-          ))}
+        <div className="p-3.5 rounded-lg bg-slate-50 border border-slate-200 text-xs font-mono text-slate-700 shrink-0">
+          <span className="text-slate-950 font-bold">NSGA-II</span> Non-Dominated Sorting Core
         </div>
       </div>
 
-      {/* Active Workload Summary Card */}
-      {activeWorkload && (
-        <div className="glass-panel p-4 rounded-xl border border-slate-800 bg-slate-950/60 grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+      {/* 1. VISUAL WHERE x WHEN MATRIX GRID */}
+      <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <span className="text-slate-400 block mb-0.5">CPU & Memory</span>
-            <span className="font-bold text-slate-100">{activeWorkload.cpuRequired} cores / {activeWorkload.memoryRequired} GB</span>
+            <h4 className="text-sm font-bold text-slate-950 flex items-center gap-2">
+              <Layers className="w-4 h-4 text-slate-900" />
+              <span>Placement Schedule Grid: Resource Pools (WHERE) × Time Slots (WHEN)</span>
+            </h4>
+            <p className="text-xs text-slate-600 mt-0.5">
+              Workloads scheduled into spatial pools and hourly slots. Click any task chip to inspect its parameters.
+            </p>
           </div>
-          <div>
-            <span className="text-slate-400 block mb-0.5">Arrival Time</span>
-            <span className="font-mono text-cyan-300">{activeWorkload.arrivalTime}</span>
-          </div>
-          <div>
-            <span className="text-slate-400 block mb-0.5">Execution Duration</span>
-            <span className="font-mono text-slate-200">{activeWorkload.duration} hours</span>
-          </div>
-          <div>
-            <span className="text-slate-400 block mb-0.5">SLA Deadline</span>
-            <span className="font-mono text-rose-400 font-bold">{activeWorkload.deadline}</span>
+          <div className="text-xs font-mono text-slate-600 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-slate-950" /> Scheduled
+            <span className="w-2 h-2 rounded-full bg-emerald-600 ml-2" /> Solar Peak Window
           </div>
         </div>
-      )}
 
-      {/* Step 2: Candidate Options Matrix (Data Center x Time Slot) */}
-      <div className="space-y-4">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr className="border-b border-slate-200">
+                <th className="p-3 font-sans text-xs text-slate-600 uppercase bg-slate-50 w-48 font-bold">
+                  Resource Pool (WHERE)
+                </th>
+                {timeSlots.map((slot) => (
+                  <th key={slot.id} className="p-2.5 font-sans text-xs text-center text-slate-700 border-l border-slate-200 bg-slate-50 font-bold">
+                    <div>Slot {slot.label}</div>
+                    <div className="text-xs text-slate-500 font-normal">{slot.startTime}</div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200">
+              {resourcePools.map((pool) => (
+                <tr key={pool.id} className="hover:bg-slate-50/50">
+                  {/* Pool Row Header */}
+                  <td className="p-3 bg-slate-50/50 border-r border-slate-200">
+                    <div className="font-bold text-slate-950 text-xs">{pool.locationLabel}</div>
+                    <div className="text-xs text-slate-500 font-mono">{pool.id} · PUE {pool.pue}</div>
+                    <div className="text-xs text-slate-700 font-mono mt-0.5 font-semibold">{pool.carbonIntensity} gCO₂/kWh</div>
+                  </td>
+
+                  {/* Slot Cells */}
+                  {timeSlots.map((slot) => {
+                    const key = `${pool.id}-${slot.id}`;
+                    const assigned = gridAssignments[key] || [];
+
+                    return (
+                      <td
+                        key={slot.id}
+                        className="p-2 border-l border-slate-200 align-top min-w-[100px] h-20"
+                      >
+                        {assigned.length > 0 ? (
+                          <div className="space-y-1.5">
+                            {assigned.map((w) => {
+                              const isSelected = selectedWorkloadId === w.id;
+                              return (
+                                <button
+                                  key={w.id}
+                                  onClick={() => handleSelectWorkload(w.id)}
+                                  className={`w-full p-1.5 rounded text-left transition-all cursor-pointer block border ${
+                                    isSelected
+                                      ? 'bg-slate-950 text-white font-bold border-slate-950 shadow-sm'
+                                      : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center justify-between text-[10px] font-mono">
+                                    <span>{w.id}</span>
+                                    <span>{w.duration}h</span>
+                                  </div>
+                                  <div className="truncate text-[10px] opacity-90 mt-0.5 font-medium">
+                                    {w.name.split(' ')[0]}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="h-full flex items-center justify-center text-[10px] text-slate-400 font-mono">
+                            idle
+                          </div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 2. STEP 1: SELECT & INSPECT WORKLOAD */}
+      <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm space-y-4">
         <div className="flex items-center justify-between">
-          <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-            <span>Candidate Options Matrix</span>
-            <span className="text-xs text-slate-400 font-normal">
-              (Data Center × Time Slot combinations)
-            </span>
-          </h4>
-          <span className="text-[11px] text-cyan-400 font-mono">
-            {candidateOptions.length} combinations evaluated
+          <label className="text-xs font-mono uppercase tracking-wider text-slate-500 font-semibold">
+            Select Workload Profile for Candidate Analysis
+          </label>
+          <span className="text-xs font-mono text-slate-950 font-semibold">
+            Active: {activeWorkload.id} ({activeWorkload.name})
           </span>
         </div>
 
-        <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-900/90 text-slate-400 uppercase font-mono border-b border-slate-800">
-                <tr>
-                  <th className="px-4 py-3">WHERE (Data Center)</th>
-                  <th className="px-4 py-3">WHEN (Time Slot)</th>
-                  <th className="px-4 py-3">PUE</th>
-                  <th className="px-4 py-3">Est. Energy (kWh)</th>
-                  <th className="px-4 py-3">Est. Carbon (gCO₂)</th>
-                  <th className="px-4 py-3">Est. Cost ($)</th>
-                  <th className="px-4 py-3">SLA Feasible</th>
-                  <th className="px-4 py-3 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/80 text-slate-200">
-                {candidateOptions.map((opt, idx) => {
-                  const isSelected =
-                    selectedCandidate?.datacenterId === opt.datacenterId &&
-                    selectedCandidate?.timeSlotId === opt.timeSlotId;
+        <div className="flex flex-wrap gap-2">
+          {workloads.map((wl) => (
+            <button
+              key={wl.id}
+              onClick={() => handleSelectWorkload(wl.id)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer border ${
+                selectedWorkloadId === wl.id
+                  ? 'bg-slate-950 text-white font-semibold border-slate-950 shadow-sm'
+                  : 'bg-slate-50 text-slate-700 hover:text-slate-950 border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              <span className="font-mono">{wl.id}:</span> {wl.name.split(' ')[0]}
+            </button>
+          ))}
+        </div>
 
-                  return (
-                    <tr
-                      key={`${opt.datacenterId}-${opt.timeSlotId}-${idx}`}
-                      onClick={() => setSelectedCandidate(opt)}
-                      className={`hover:bg-slate-800/50 transition-colors cursor-pointer ${
-                        isSelected ? 'bg-cyan-950/40 border-l-4 border-l-cyan-400' : ''
-                      }`}
-                    >
-                      <td className="px-4 py-3 font-semibold text-slate-100">
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-3.5 h-3.5 text-cyan-400" />
-                          <span>{opt.datacenterName}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-cyan-300">
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{opt.timeSlotLabel}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 font-mono text-slate-300">{opt.pue}</td>
-                      <td className="px-4 py-3 font-mono text-amber-300">{opt.estimatedEnergy}</td>
-                      <td className="px-4 py-3 font-mono text-emerald-300">{opt.estimatedCarbon}</td>
-                      <td className="px-4 py-3 font-mono text-slate-200">${opt.estimatedCost}</td>
-                      <td className="px-4 py-3">
-                        {opt.slaFeasible ? (
-                          <span className="inline-flex items-center gap-1 text-emerald-400 font-semibold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-800">
-                            <CheckCircle2 className="w-3 h-3" /> Feasible
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-rose-400 font-semibold bg-rose-950/60 px-2 py-0.5 rounded border border-rose-800">
-                            <XCircle className="w-3 h-3" /> SLA Violated
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedCandidate(opt);
-                          }}
-                          className={`px-3 py-1 rounded text-[11px] font-semibold transition-all ${
-                            isSelected
-                              ? 'bg-cyan-500 text-slate-950 shadow-md'
-                              : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                          }`}
-                        >
-                          {isSelected ? 'Selected' : 'Select'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        {/* Selected Workload Specs Banner */}
+        <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+          <div>
+            <span className="text-slate-500 text-[10px] uppercase font-mono block">Compute Footprint</span>
+            <span className="font-mono font-bold text-slate-950">{activeWorkload.cpuRequired} Cores · {activeWorkload.memoryRequired} GB</span>
+          </div>
+          <div>
+            <span className="text-slate-500 text-[10px] uppercase font-mono block">Execution Duration</span>
+            <span className="font-mono font-bold text-slate-950">{activeWorkload.duration} Hours</span>
+          </div>
+          <div>
+            <span className="text-slate-500 text-[10px] uppercase font-mono block">Arrival Time</span>
+            <span className="font-mono text-slate-950 font-bold">{activeWorkload.arrivalTime}</span>
+          </div>
+          <div>
+            <span className="text-slate-500 text-[10px] uppercase font-mono block">Hard Deadline</span>
+            <span className="font-mono text-rose-600 font-bold">{activeWorkload.deadline}</span>
+          </div>
+          <div>
+            <span className="text-slate-500 text-[10px] uppercase font-mono block">SLA Condition</span>
+            <span className="font-mono text-emerald-700 font-semibold">{activeWorkload.slaStatus}</span>
           </div>
         </div>
       </div>
 
-      {/* Step 3: Selected Scheduling Decision Box */}
-      {selectedCandidate && (
-        <div className="glass-panel p-6 rounded-2xl border border-emerald-500/30 bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950/30 space-y-4">
-          <div className="flex items-center justify-between">
-            <h4 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-emerald-400" />
-              <span>Selected Spatial-Temporal Scheduling Decision</span>
+      {/* 3. CANDIDATE OPTIONS MATRIX TABLE (Resource Pool x Time Slot) */}
+      <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-bold text-slate-950 flex items-center gap-2">
+              <span>Candidate Options Evaluation</span>
+              <span className="text-xs text-slate-500 font-normal">
+                (Regional Pool × Time Slot permutations for {activeWorkload.id})
+              </span>
             </h4>
-            <span className="px-2.5 py-0.5 rounded text-[10px] font-mono bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+          </div>
+          <span className="text-xs font-mono text-slate-500">
+            {candidateOptions.length} combinations ranked
+          </span>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase font-mono text-[10px]">
+              <tr>
+                <th className="py-3 px-4 font-semibold">WHERE (Regional Pool)</th>
+                <th className="py-3 px-4 font-semibold">WHEN (Time Slot)</th>
+                <th className="py-3 px-3 font-semibold">PUE</th>
+                <th className="py-3 px-3 text-right font-semibold">Energy (kWh)</th>
+                <th className="py-3 px-3 text-right font-semibold">Carbon (gCO₂)</th>
+                <th className="py-3 px-3 text-right font-semibold">Cost ($)</th>
+                <th className="py-3 px-4 text-center font-semibold">SLA Feasibility</th>
+                <th className="py-3 px-4 text-right font-semibold">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-200 font-mono text-xs">
+              {candidateOptions.map((opt, idx) => {
+                const isSelected =
+                  selectedCandidate?.poolId === opt.poolId &&
+                  selectedCandidate?.timeSlotId === opt.timeSlotId;
+
+                return (
+                  <tr
+                    key={`${opt.poolId}-${opt.timeSlotId}-${idx}`}
+                    onClick={() => setSelectedCandidate(opt)}
+                    className={`hover:bg-slate-50 transition-colors cursor-pointer ${
+                      isSelected ? 'bg-slate-100 border-l-2 border-slate-950' : ''
+                    }`}
+                  >
+                    <td className="py-3.5 px-4 font-sans font-medium text-slate-950 flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-slate-900" />
+                      <span className="font-semibold">{opt.poolName}</span>
+                      <span className="text-[10px] text-slate-500 font-mono">({opt.region.split(' ')[0]})</span>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-700 font-medium">
+                      <span className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" />
+                        {opt.timeSlotLabel}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-3 text-slate-600">{opt.pue}</td>
+                    <td className="py-3.5 px-3 text-right text-slate-700">{opt.estimatedEnergy.toFixed(2)}</td>
+                    <td className="py-3.5 px-3 text-right text-slate-950 font-semibold">{opt.estimatedCarbon.toFixed(1)}</td>
+                    <td className="py-3.5 px-3 text-right text-slate-700">${opt.estimatedCost.toFixed(2)}</td>
+                    <td className="py-3.5 px-4 text-center">
+                      {opt.slaFeasible ? (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-mono text-emerald-700 px-2 py-0.5 rounded bg-emerald-50 border border-emerald-200 font-semibold">
+                          <CheckCircle2 className="w-3 h-3" /> Feasible
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[11px] font-mono text-rose-700 px-2 py-0.5 rounded bg-rose-50 border border-rose-200 font-semibold">
+                          <XCircle className="w-3 h-3" /> SLA Violated
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCandidate(opt);
+                        }}
+                        className={`px-3 py-1 rounded text-[11px] font-sans transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-slate-950 text-white font-semibold shadow-sm'
+                            : 'bg-slate-100 text-slate-800 hover:bg-slate-200 border border-slate-200'
+                        }`}
+                      >
+                        {isSelected ? 'Selected' : 'Select'}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 4. SELECTED DECISION HIGHLIGHT */}
+      {selectedCandidate && (
+        <div className="p-6 rounded-xl bg-slate-950 text-white shadow-md space-y-4">
+          <div className="flex items-center justify-between">
+            <h4 className="text-sm font-bold text-white flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-amber-400" />
+              <span>Optimal Candidate Decision for {activeWorkload.id}</span>
+            </h4>
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-white/10 text-white border border-white/20 font-semibold">
               WHERE & WHEN RESOLVED
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-              <span className="text-[11px] text-slate-400 block mb-1">WHERE (Data Center)</span>
-              <p className="text-sm font-bold text-cyan-300">{selectedCandidate.datacenterName}</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">{selectedCandidate.region}</p>
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+            <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800">
+              <span className="text-[10px] font-mono text-slate-400 block mb-1">WHERE (Regional Pool)</span>
+              <p className="text-sm font-bold text-white">{selectedCandidate.poolName}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">{selectedCandidate.region}</p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-              <span className="text-[11px] text-slate-400 block mb-1">WHEN (Time Slot)</span>
-              <p className="text-sm font-bold text-emerald-300 font-mono">{selectedCandidate.timeSlotLabel}</p>
-              <p className="text-[10px] text-slate-500 mt-0.5">Execution Horizon</p>
+            <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800">
+              <span className="text-[10px] font-mono text-slate-400 block mb-1">WHEN (Execution Slot)</span>
+              <p className="text-sm font-bold text-white font-mono">{selectedCandidate.timeSlotLabel}</p>
+              <p className="text-[10px] text-slate-400 mt-0.5">Duration: {activeWorkload.duration}h</p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-              <span className="text-[11px] text-slate-400 block mb-1">Est. Energy & Carbon</span>
-              <p className="text-xs font-bold text-amber-300 font-mono">{selectedCandidate.estimatedEnergy} kWh</p>
-              <p className="text-xs font-bold text-emerald-400 font-mono">{selectedCandidate.estimatedCarbon} gCO₂</p>
+            <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800">
+              <span className="text-[10px] font-mono text-slate-400 block mb-1">Energy & Carbon</span>
+              <p className="text-xs font-mono font-bold text-white">{selectedCandidate.estimatedEnergy} kWh</p>
+              <p className="text-xs font-mono font-bold text-emerald-400">{selectedCandidate.estimatedCarbon} gCO₂</p>
             </div>
 
-            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-              <span className="text-[11px] text-slate-400 block mb-1">Est. Operational Cost</span>
-              <p className="text-base font-bold text-slate-100 font-mono">${selectedCandidate.estimatedCost}</p>
-              <p className="text-[10px] text-emerald-400 font-semibold mt-0.5">SLA Constraint Met</p>
+            <div className="p-3.5 rounded-lg bg-slate-900 border border-slate-800">
+              <span className="text-[10px] font-mono text-slate-400 block mb-1">Electricity Cost & SLA</span>
+              <p className="text-sm font-mono font-bold text-white">${selectedCandidate.estimatedCost}</p>
+              <p className="text-[10px] text-emerald-400 font-medium mt-0.5">SLA Deadline Compliant</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Illustrative Pareto Front Preview */}
-      <ChartCard
-        title="Illustrative Pareto Front — Demo"
-        subtitle="Multi-objective trade-off space between Carbon Emissions, Energy, and Operational Cost"
-        demoLabel="Illustrative Pareto Front — Demo"
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <ScatterChart margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-            <XAxis type="number" dataKey="costUsd" name="Cost" unit="$" stroke="#64748b" fontSize={11} />
-            <YAxis type="number" dataKey="carbonKg" name="Carbon" unit="kg" stroke="#64748b" fontSize={11} />
-            <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-            <Scatter name="Solutions" data={demoParetoPoints} fill="#06b6d4">
-              {demoParetoPoints.map((entry, index) => (
-                <Cell
-                  key={`cell-${index}`}
-                  fill={entry.selected ? '#10b981' : '#06b6d4'}
-                  stroke={entry.selected ? '#34d399' : '#0284c7'}
-                  strokeWidth={entry.selected ? 3 : 1}
-                />
-              ))}
-            </Scatter>
-          </ScatterChart>
-        </ResponsiveContainer>
-      </ChartCard>
+      {/* 5. PARETO SCATTER PREVIEW */}
+      <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h4 className="text-sm font-bold text-slate-950">Illustrative Pareto Front (Energy vs. Carbon vs. Cost)</h4>
+            <p className="text-xs text-slate-600">Multi-objective non-dominated solutions generated by NSGA-II</p>
+          </div>
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-semibold">
+            ILLUSTRATIVE
+          </span>
+        </div>
+
+        <div className="h-64 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <ScatterChart margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+              <XAxis type="number" dataKey="costUsd" name="Cost" unit="$" stroke="#64748b" fontSize={10} />
+              <YAxis type="number" dataKey="carbonKg" name="Carbon" unit="kg" stroke="#64748b" fontSize={10} />
+              <Tooltip
+                cursor={{ strokeDasharray: '3 3' }}
+                contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#09090b', borderRadius: '8px', fontSize: '11px' }}
+              />
+              <Scatter name="Candidate Solutions" data={demoParetoPoints} fill="#09090b">
+                {demoParetoPoints.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.selected ? '#09090b' : '#64748b'}
+                    stroke={entry.selected ? '#09090b' : '#94a3b8'}
+                    strokeWidth={entry.selected ? 2 : 1}
+                  />
+                ))}
+              </Scatter>
+            </ScatterChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-600 flex items-center justify-between">
+          <span>
+            <strong>Note:</strong> Illustrative optimization output based on trace-driven simulation runs. Actual results depend on workload characteristics and grid carbon dynamics.
+          </span>
+        </div>
+      </div>
     </div>
   );
 };
