@@ -1,0 +1,11 @@
+{
+  "experiment_id": "COMP-ECOFUSION_NSGA2",
+  "timestamp": "2026-09-07T12:23:12.749623+00:00",
+  "scheduler_name": "ecofusion_nsga2",
+  "random_seed": 42,
+  "total_energy_kwh": 20393.59,
+  "total_carbon_kg": 13098.14,
+  "total_cost_usd": 2402.17,
+  "sla_violation_rate_percent": 0.0,
+  "scheduled_ratio": "100/100"
+}

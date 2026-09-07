@@ -28,12 +28,7 @@ export class SimulatorService {
   private experiments: Experiment[] = [...demoExperiments];
   private config: SimulationConfig = { ...defaultConfig };
   private setupConfig: SimulationSetupConfig = { ...defaultSimulationSetupConfig };
-  private isBackendAvailable: boolean | null = null;
-
-  public async checkBackendAvailability(): Promise<boolean> {
-    this.isBackendAvailable = await apiClient.checkHealth();
-    return this.isBackendAvailable;
-  }
+  private latestParetoSolutions: any[] = [];
 
   public getResourcePools(): ResourcePool[] {
     return this.resourcePools;
@@ -46,7 +41,7 @@ export class SimulatorService {
         this.resourcePools = pools;
       }
     } catch {
-      // Fallback to local
+      // Fallback
     }
     return this.resourcePools;
   }
@@ -66,7 +61,7 @@ export class SimulatorService {
         this.workloads = wls;
       }
     } catch {
-      // Fallback to local
+      // Fallback
     }
     return this.workloads;
   }
@@ -86,7 +81,7 @@ export class SimulatorService {
         this.experiments = exps;
       }
     } catch {
-      // Fallback to local
+      // Fallback
     }
     return this.experiments;
   }
@@ -97,6 +92,10 @@ export class SimulatorService {
 
   public getSimulationSetupConfig(): SimulationSetupConfig {
     return this.setupConfig;
+  }
+
+  public getLatestParetoSolutions(): any[] {
+    return this.latestParetoSolutions;
   }
 
   public updateSimulationSetupConfig(newConfig: Partial<SimulationSetupConfig>): SimulationSetupConfig {
@@ -177,8 +176,27 @@ export class SimulatorService {
 
   public async runAsyncSimulation(configOverride?: Partial<SimulationConfig>): Promise<SimulationResult> {
     try {
+      const algo = (configOverride?.algorithm || this.setupConfig.algorithm || 'ECOFUSION_NSGA2').toUpperCase();
+      
+      if (algo.includes('NSGA2') || algo.includes('ECOFUSION')) {
+        const optRes = await apiClient.runOptimization(
+          {
+            num_workloads: this.setupConfig.numWorkloads,
+            random_seed: this.setupConfig.randomSeed,
+            ...(configOverride || {}),
+          },
+          {
+            population_size: 50,
+            generations: 50,
+            random_seed: this.setupConfig.randomSeed,
+          }
+        );
+        this.latestParetoSolutions = optRes.paretoSolutions;
+        return optRes.result;
+      }
+
       const res = await apiClient.runSimulation({
-        algorithm: this.setupConfig.algorithm,
+        algorithm: algo,
         numWorkloads: this.setupConfig.numWorkloads,
         randomSeed: this.setupConfig.randomSeed,
         ...(configOverride || {}),
@@ -260,7 +278,7 @@ export class SimulatorService {
       numWorkloads: expData.numWorkloads || 24,
       numDataCenters: expData.numDataCenters || 3,
       timeSlotDuration: expData.timeSlotDuration || 60,
-      algorithm: expData.algorithm || 'RANDOM',
+      algorithm: expData.algorithm || 'ECOFUSION_NSGA2',
       randomSeed: expData.randomSeed || 42,
       status: 'READY',
       createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16),

@@ -1,0 +1,23 @@
+{
+  "experiment_id": "COMP-ECOFUSION_NSGA2",
+  "scheduler_name": "ecofusion_nsga2",
+  "total_workloads": 100,
+  "scheduled_workloads": 100,
+  "unscheduled_workloads": 0,
+  "total_energy_kwh": 20393.59,
+  "total_carbon_kg": 13098.14,
+  "total_cost": 2402.17,
+  "sla_violations": 0,
+  "sla_violation_rate": 0.0,
+  "average_completion_time": 13.47,
+  "execution_metadata": {
+    "execution_time_ms": 15387.49,
+    "timestamp": "2026-09-07T12:23:12.749623+00:00",
+    "seed_used": 42,
+    "version": "0.3.0",
+    "extra": {
+      "resource_pools_count": 3,
+      "time_slots_count": 24
+    }
+  }
+}

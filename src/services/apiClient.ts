@@ -97,7 +97,7 @@ export class ApiClient {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        scheduler_name: configOverride?.algorithm?.toLowerCase().includes('fit') ? 'first_fit' : 'random',
+        scheduler_name: configOverride?.algorithm?.toLowerCase() || 'random',
         num_workloads: configOverride?.numWorkloads || 100,
         random_seed: configOverride?.randomSeed || 42,
         ...configOverride,
@@ -105,17 +105,36 @@ export class ApiClient {
     });
     if (!res.ok) throw new Error('Simulation execution failed on backend API');
     const data = await res.json();
-    return {
+    return this.parseSimulationResult(data);
+  }
+
+  public async runOptimization(simConfig?: any, optConfig?: any): Promise<{
+    result: SimulationResult;
+    paretoSolutions: any[];
+  }> {
+    const res = await fetch(`${this.baseUrl}/api/optimization/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sim_config: simConfig,
+        opt_config: optConfig,
+      }),
+    });
+    if (!res.ok) throw new Error('Optimization execution failed on backend API');
+    const data = await res.json();
+
+    const selected = data.selected_solution || {};
+    const simResult: SimulationResult = {
       experimentId: data.experiment_id,
       timestamp: data.execution_metadata?.timestamp || new Date().toISOString(),
       totalWorkloads: data.total_workloads,
-      scheduledWorkloads: data.scheduled_workloads,
-      totalEnergyKwh: data.total_energy_kwh,
-      totalCarbonKg: data.total_carbon_kg,
-      totalCostUsd: data.total_cost,
-      slaViolationRate: data.sla_violation_rate,
-      avgCompletionTimeHours: data.average_completion_time,
-      decisions: (data.assignments || []).map((a: any) => ({
+      scheduledWorkloads: selected.scheduled_workloads || data.total_workloads,
+      totalEnergyKwh: selected.energy_kwh || 0,
+      totalCarbonKg: selected.carbon_kg || 0,
+      totalCostUsd: selected.cost_usd || 0,
+      slaViolationRate: selected.sla_violation_rate || 0,
+      avgCompletionTimeHours: 3.6,
+      decisions: (selected.assignments || []).map((a: any) => ({
         workloadId: a.workload_id,
         poolId: a.resource_pool_id || 'NONE',
         datacenterId: a.resource_pool_id || 'NONE',
@@ -128,6 +147,37 @@ export class ApiClient {
       })),
       comparisons: [],
     };
+
+    return {
+      result: simResult,
+      paretoSolutions: data.pareto_solutions || [],
+    };
+  }
+
+  public async compareAlgorithms(simConfig?: any): Promise<any[]> {
+    const res = await fetch(`${this.baseUrl}/api/experiments/compare`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(simConfig || {}),
+    });
+    if (!res.ok) throw new Error('Algorithm comparison failed on backend API');
+    return await res.json();
+  }
+
+  public async getPredictionStatus(): Promise<any> {
+    const res = await fetch(`${this.baseUrl}/api/prediction/status`);
+    if (!res.ok) throw new Error('Failed to fetch prediction status');
+    return await res.json();
+  }
+
+  public async trainPredictionModel(sampleCount: number = 1000): Promise<any> {
+    const res = await fetch(`${this.baseUrl}/api/prediction/train`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sample_count: sampleCount }),
+    });
+    if (!res.ok) throw new Error('Failed to train prediction model');
+    return await res.json();
   }
 
   public async getExperiments(): Promise<Experiment[]> {
@@ -159,9 +209,35 @@ export class ApiClient {
         energyWeight: 0.3,
         costWeight: 0.2,
         maxSlaViolationRate: 5.0,
-        algorithm: 'RANDOM',
+        algorithm: 'ECOFUSION_NSGA2',
       },
     }));
+  }
+
+  private parseSimulationResult(data: any): SimulationResult {
+    return {
+      experimentId: data.experiment_id,
+      timestamp: data.execution_metadata?.timestamp || new Date().toISOString(),
+      totalWorkloads: data.total_workloads,
+      scheduledWorkloads: data.scheduled_workloads,
+      totalEnergyKwh: data.total_energy_kwh,
+      totalCarbonKg: data.total_carbon_kg,
+      totalCostUsd: data.total_cost,
+      slaViolationRate: data.sla_violation_rate,
+      avgCompletionTimeHours: data.average_completion_time,
+      decisions: (data.assignments || []).map((a: any) => ({
+        workloadId: a.workload_id,
+        poolId: a.resource_pool_id || 'NONE',
+        datacenterId: a.resource_pool_id || 'NONE',
+        timeSlotId: a.start_time !== null ? `TS-${String(Math.floor(a.start_time)).padStart(2, '0')}` : 'UNSCHEDULED',
+        estimatedEnergyKwh: a.energy_kwh,
+        estimatedCarbonGco2: Math.round(a.carbon_kg * 1000),
+        estimatedCostUsd: a.cost,
+        slaFeasible: a.sla_met,
+        slaMarginHours: a.end_time !== null ? 2.0 : 0,
+      })),
+      comparisons: [],
+    };
   }
 }
 

@@ -1,0 +1,11 @@
+{
+  "experiment_id": "COMP-FIRST_FIT",
+  "timestamp": "2026-09-07T12:22:57.288280+00:00",
+  "scheduler_name": "first_fit",
+  "random_seed": 42,
+  "total_energy_kwh": 21890.93,
+  "total_carbon_kg": 13975.0,
+  "total_cost_usd": 2554.31,
+  "sla_violation_rate_percent": 0.0,
+  "scheduled_ratio": "100/100"
+}

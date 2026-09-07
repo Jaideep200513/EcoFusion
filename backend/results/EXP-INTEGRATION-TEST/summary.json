@@ -1,6 +1,6 @@
 {
   "experiment_id": "EXP-INTEGRATION-TEST",
-  "timestamp": "2026-09-07T11:50:05.002691+00:00",
+  "timestamp": "2026-09-07T12:18:31.648033+00:00",
   "scheduler_name": "random",
   "random_seed": 42,
   "total_energy_kwh": 29198.24,

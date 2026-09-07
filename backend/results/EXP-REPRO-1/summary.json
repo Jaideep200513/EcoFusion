@@ -1,6 +1,6 @@
 {
   "experiment_id": "EXP-REPRO-1",
-  "timestamp": "2026-09-07T11:50:05.039565+00:00",
+  "timestamp": "2026-09-07T12:18:31.702163+00:00",
   "scheduler_name": "random",
   "random_seed": 12345,
   "total_energy_kwh": 18947.21,

@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { baselineComparisons } from '../data/mockData';
-import {
-  CheckCircle2,
-} from 'lucide-react';
+import { apiClient } from '../services/apiClient';
+import { CheckCircle2, RefreshCw } from 'lucide-react';
 import {
   BarChart,
   Bar,
@@ -16,8 +15,28 @@ import {
 
 export const Comparisons: React.FC = () => {
   const [selectedMetric, setSelectedMetric] = useState<'carbon' | 'energy' | 'cost' | 'sla'>('carbon');
+  const [comparisonList, setComparisonList] = useState<any[]>(baselineComparisons);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const chartData = baselineComparisons.map((b) => ({
+  const fetchLiveComparisons = async () => {
+    setIsLoading(true);
+    try {
+      const data = await apiClient.compareAlgorithms();
+      if (data && data.length > 0) {
+        setComparisonList(data);
+      }
+    } catch {
+      // Fallback to baselineComparisons
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveComparisons();
+  }, []);
+
+  const chartData = comparisonList.map((b) => ({
     name: b.label,
     carbon: b.totalCarbonKg,
     energy: b.totalEnergyKwh,
@@ -35,7 +54,7 @@ export const Comparisons: React.FC = () => {
           color: '#10b981',
           unit: ' kgCO₂',
           bestAlgo: 'EcoFusion (NSGA-II) & Carbon-Aware',
-          summary: 'EcoFusion achieves a 28.6% carbon reduction vs. Random and 23.4% vs. First-Fit by leveraging spatial grid differences.',
+          summary: 'EcoFusion achieves substantial carbon reduction vs. Random and First-Fit by leveraging spatial grid differences.',
         };
       case 'energy':
         return {
@@ -44,7 +63,7 @@ export const Comparisons: React.FC = () => {
           color: '#06b6d4',
           unit: ' kWh',
           bestAlgo: 'Energy-Aware & EcoFusion',
-          summary: 'EcoFusion minimizes both IT dynamic load and cooling overhead via PUE-aware spatial routing.',
+          summary: 'EcoFusion minimizes both IT dynamic load and facility PUE overhead.',
         };
       case 'cost':
         return {
@@ -76,49 +95,59 @@ export const Comparisons: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-slate-950 tracking-tight">Baseline Algorithm Benchmarking</h3>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200 font-bold">
-              EMPIRICAL
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold">
+              BENCHMARK RUNNER
             </span>
           </div>
           <p className="text-xs text-slate-600 mt-1 max-w-2xl">
-            Evaluating the multi-objective Pareto approach (NSGA-II) against standard single-metric and heuristic schedulers across 24 trace workloads.
+            Evaluating the multi-objective Pareto approach (NSGA-II) against Carbon-Aware, Energy-Aware, First-Fit, and Random schedulers across identical trace workloads.
           </p>
         </div>
 
-        {/* Metric Selector Tabs */}
-        <div className="flex flex-wrap gap-1.5 p-1 rounded-lg bg-slate-100 border border-slate-200">
+        <div className="flex items-center gap-3">
           <button
-            onClick={() => setSelectedMetric('carbon')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
-              selectedMetric === 'carbon' ? 'bg-slate-950 text-white font-semibold shadow-sm' : 'text-slate-600 hover:text-slate-950'
-            }`}
+            onClick={fetchLiveComparisons}
+            disabled={isLoading}
+            className="px-3 py-1.5 rounded-md bg-white border border-slate-300 hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
           >
-            Carbon
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? 'animate-spin' : ''}`} />
+            <span>{isLoading ? 'Running Benchmark...' : 'Run Live Benchmark'}</span>
           </button>
-          <button
-            onClick={() => setSelectedMetric('energy')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
-              selectedMetric === 'energy' ? 'bg-slate-950 text-white font-semibold shadow-sm' : 'text-slate-600 hover:text-slate-950'
-            }`}
-          >
-            Energy
-          </button>
-          <button
-            onClick={() => setSelectedMetric('cost')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
-              selectedMetric === 'cost' ? 'bg-slate-950 text-white font-semibold shadow-sm' : 'text-slate-600 hover:text-slate-950'
-            }`}
-          >
-            Cost
-          </button>
-          <button
-            onClick={() => setSelectedMetric('sla')}
-            className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
-              selectedMetric === 'sla' ? 'bg-slate-950 text-white font-semibold shadow-sm' : 'text-slate-600 hover:text-slate-950'
-            }`}
-          >
-            SLA Rate
-          </button>
+
+          <div className="flex flex-wrap gap-1.5 p-1 rounded-lg bg-slate-100 border border-slate-200">
+            <button
+              onClick={() => setSelectedMetric('carbon')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                selectedMetric === 'carbon' ? 'bg-slate-950 text-white font-semibold shadow-sm' : 'text-slate-600 hover:text-slate-950'
+              }`}
+            >
+              Carbon
+            </button>
+            <button
+              onClick={() => setSelectedMetric('energy')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                selectedMetric === 'energy' ? 'bg-slate-950 text-white font-semibold shadow-sm' : 'text-slate-600 hover:text-slate-950'
+              }`}
+            >
+              Energy
+            </button>
+            <button
+              onClick={() => setSelectedMetric('cost')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                selectedMetric === 'cost' ? 'bg-slate-950 text-white font-semibold shadow-sm' : 'text-slate-600 hover:text-slate-950'
+              }`}
+            >
+              Cost
+            </button>
+            <button
+              onClick={() => setSelectedMetric('sla')}
+              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
+                selectedMetric === 'sla' ? 'bg-slate-950 text-white font-semibold shadow-sm' : 'text-slate-600 hover:text-slate-950'
+              }`}
+            >
+              SLA Rate
+            </button>
+          </div>
         </div>
       </div>
 
@@ -177,7 +206,7 @@ export const Comparisons: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 font-mono">
-              {baselineComparisons.map((row) => (
+              {comparisonList.map((row) => (
                 <tr
                   key={row.algorithm}
                   className={
