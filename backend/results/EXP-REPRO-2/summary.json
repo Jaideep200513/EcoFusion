@@ -1,0 +1,11 @@
+{
+  "experiment_id": "EXP-REPRO-2",
+  "timestamp": "2026-09-07T11:50:05.047278+00:00",
+  "scheduler_name": "random",
+  "random_seed": 12345,
+  "total_energy_kwh": 18947.21,
+  "total_carbon_kg": 10453.38,
+  "total_cost_usd": 2556.86,
+  "sla_violation_rate_percent": 0.0,
+  "scheduled_ratio": "50/50"
+}

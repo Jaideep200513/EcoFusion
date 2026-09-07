@@ -1,0 +1,23 @@
+{
+  "experiment_id": "EXP-002",
+  "scheduler_name": "first_fit",
+  "total_workloads": 20,
+  "scheduled_workloads": 20,
+  "unscheduled_workloads": 0,
+  "total_energy_kwh": 8189.69,
+  "total_carbon_kg": 5323.3,
+  "total_cost": 982.76,
+  "sla_violations": 0,
+  "sla_violation_rate": 0.0,
+  "average_completion_time": 13.95,
+  "execution_metadata": {
+    "execution_time_ms": 1.8,
+    "timestamp": "2026-09-07T11:50:04.939476+00:00",
+    "seed_used": 100,
+    "version": "0.3.0",
+    "extra": {
+      "resource_pools_count": 3,
+      "time_slots_count": 24
+    }
+  }
+}

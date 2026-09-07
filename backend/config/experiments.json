@@ -1,0 +1,9 @@
+{
+  "schema_version": "1.0.0",
+  "storage_directory": "results",
+  "default_experiment_prefix": "EXP",
+  "supported_schedulers": [
+    "random",
+    "first_fit"
+  ]
+}

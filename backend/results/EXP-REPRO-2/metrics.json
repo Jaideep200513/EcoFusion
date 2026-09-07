@@ -1,0 +1,23 @@
+{
+  "experiment_id": "EXP-REPRO-2",
+  "scheduler_name": "random",
+  "total_workloads": 50,
+  "scheduled_workloads": 50,
+  "unscheduled_workloads": 0,
+  "total_energy_kwh": 18947.21,
+  "total_carbon_kg": 10453.38,
+  "total_cost": 2556.86,
+  "sla_violations": 0,
+  "sla_violation_rate": 0.0,
+  "average_completion_time": 12.3,
+  "execution_metadata": {
+    "execution_time_ms": 2.97,
+    "timestamp": "2026-09-07T11:50:05.047278+00:00",
+    "seed_used": 12345,
+    "version": "0.3.0",
+    "extra": {
+      "resource_pools_count": 3,
+      "time_slots_count": 24
+    }
+  }
+}

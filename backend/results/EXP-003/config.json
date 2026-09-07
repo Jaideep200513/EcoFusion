@@ -1,0 +1,17 @@
+{
+  "simulation_start": 0.0,
+  "simulation_end": 24.0,
+  "slot_duration_minutes": 60,
+  "random_seed": 42,
+  "scheduler_name": "random",
+  "include_unassigned_workloads": true,
+  "workload_dataset_name": "synthetic_100",
+  "num_workloads": 20,
+  "cpu_min": 16.0,
+  "cpu_max": 256.0,
+  "memory_min": 64.0,
+  "memory_max": 1024.0,
+  "duration_min": 1.0,
+  "duration_max": 6.0,
+  "deadline_slack_hours": 4.0
+}

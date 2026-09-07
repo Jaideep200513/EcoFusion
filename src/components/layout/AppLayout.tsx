@@ -36,13 +36,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
     }
   };
 
-  const handleRunSimulation = () => {
+  const handleRunSimulation = async () => {
     setIsSimulating(true);
-    setTimeout(() => {
-      const res = simulatorService.runDemoSimulation();
+    try {
+      const res = await simulatorService.runAsyncSimulation();
       setLatestResult(res);
+    } finally {
       setIsSimulating(false);
-    }, 600);
+    }
   };
 
   return (

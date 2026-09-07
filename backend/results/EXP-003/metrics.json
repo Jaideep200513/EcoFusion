@@ -1,0 +1,23 @@
+{
+  "experiment_id": "EXP-003",
+  "scheduler_name": "random",
+  "total_workloads": 20,
+  "scheduled_workloads": 20,
+  "unscheduled_workloads": 0,
+  "total_energy_kwh": 8801.59,
+  "total_carbon_kg": 4914.86,
+  "total_cost": 1225.79,
+  "sla_violations": 0,
+  "sla_violation_rate": 0.0,
+  "average_completion_time": 13.7,
+  "execution_metadata": {
+    "execution_time_ms": 7.2,
+    "timestamp": "2026-09-07T11:55:35.197429+00:00",
+    "seed_used": 42,
+    "version": "0.3.0",
+    "extra": {
+      "resource_pools_count": 3,
+      "time_slots_count": 24
+    }
+  }
+}

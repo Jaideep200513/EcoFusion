@@ -1,0 +1,44 @@
+[
+  {
+    "id": "pool-mumbai-01",
+    "name": "Mumbai Data Center Pool",
+    "location": "Mumbai",
+    "region": "ap-south-1",
+    "cpu_capacity": 2048,
+    "memory_capacity": 8192,
+    "pue": 1.28,
+    "idle_power": 120.0,
+    "max_power": 450.0,
+    "carbon_intensity": 650.0,
+    "electricity_price": 0.12,
+    "available": true
+  },
+  {
+    "id": "pool-hyderabad-01",
+    "name": "Hyderabad Data Center Pool",
+    "location": "Hyderabad",
+    "region": "ap-south-2",
+    "cpu_capacity": 1536,
+    "memory_capacity": 6144,
+    "pue": 1.22,
+    "idle_power": 95.0,
+    "max_power": 360.0,
+    "carbon_intensity": 580.0,
+    "electricity_price": 0.10,
+    "available": true
+  },
+  {
+    "id": "pool-singapore-01",
+    "name": "Singapore Data Center Pool",
+    "location": "Singapore",
+    "region": "ap-southeast-1",
+    "cpu_capacity": 2560,
+    "memory_capacity": 10240,
+    "pue": 1.18,
+    "idle_power": 150.0,
+    "max_power": 580.0,
+    "carbon_intensity": 420.0,
+    "electricity_price": 0.18,
+    "available": true
+  }
+]

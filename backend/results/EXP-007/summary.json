@@ -1,0 +1,11 @@
+{
+  "experiment_id": "EXP-007",
+  "timestamp": "2026-09-07T11:58:43.508465+00:00",
+  "scheduler_name": "random",
+  "random_seed": 42,
+  "total_energy_kwh": 11456.63,
+  "total_carbon_kg": 6248.62,
+  "total_cost_usd": 1592.98,
+  "sla_violation_rate_percent": 0.0,
+  "scheduled_ratio": "28/28"
+}

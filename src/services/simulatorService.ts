@@ -19,6 +19,7 @@ import {
   defaultConfig,
   defaultSimulationSetupConfig,
 } from '../data/mockData';
+import { apiClient } from './apiClient';
 
 export class SimulatorService {
   private resourcePools: ResourcePool[] = [...demoResourcePools];
@@ -27,8 +28,26 @@ export class SimulatorService {
   private experiments: Experiment[] = [...demoExperiments];
   private config: SimulationConfig = { ...defaultConfig };
   private setupConfig: SimulationSetupConfig = { ...defaultSimulationSetupConfig };
+  private isBackendAvailable: boolean | null = null;
+
+  public async checkBackendAvailability(): Promise<boolean> {
+    this.isBackendAvailable = await apiClient.checkHealth();
+    return this.isBackendAvailable;
+  }
 
   public getResourcePools(): ResourcePool[] {
+    return this.resourcePools;
+  }
+
+  public async fetchResourcePools(): Promise<ResourcePool[]> {
+    try {
+      const pools = await apiClient.getResourcePools();
+      if (pools && pools.length > 0) {
+        this.resourcePools = pools;
+      }
+    } catch {
+      // Fallback to local
+    }
     return this.resourcePools;
   }
 
@@ -40,11 +59,35 @@ export class SimulatorService {
     return this.workloads;
   }
 
+  public async fetchWorkloads(count: number = 100, seed: number = 42): Promise<Workload[]> {
+    try {
+      const wls = await apiClient.getWorkloads(count, seed);
+      if (wls && wls.length > 0) {
+        this.workloads = wls;
+      }
+    } catch {
+      // Fallback to local
+    }
+    return this.workloads;
+  }
+
   public getTimeSlots(): TimeSlot[] {
     return this.timeSlots;
   }
 
   public getExperiments(): Experiment[] {
+    return this.experiments;
+  }
+
+  public async fetchExperiments(): Promise<Experiment[]> {
+    try {
+      const exps = await apiClient.getExperiments();
+      if (exps && exps.length > 0) {
+        this.experiments = exps;
+      }
+    } catch {
+      // Fallback to local
+    }
     return this.experiments;
   }
 
@@ -66,13 +109,6 @@ export class SimulatorService {
     return this.config;
   }
 
-  /**
-   * Section 11 Mathematical Formulas Implementation:
-   * E_IT = (IdlePower + (MaxPower - IdlePower) * LoadFraction) * Duration
-   * E_DC = E_IT * PUE
-   * Carbon = E_DC * CarbonIntensity (in gCO2)
-   * Cost = E_DC * ElectricityPrice (in USD)
-   */
   public calculateMetrics(
     workload: Workload,
     datacenter: DataCenter,
@@ -84,25 +120,15 @@ export class SimulatorService {
     slaFeasible: boolean;
     slaMarginHours: number;
   } {
-    // IT power approximation based on CPU requested relative to DC total CPU
     const loadFraction = Math.min(1.0, workload.cpuRequired / (datacenter.cpuCapacity * 0.1));
     const powerKw = datacenter.idlePowerKw + (datacenter.maxPowerKw - datacenter.idlePowerKw) * loadFraction;
-    
-    // IT Energy in kWh
     const eIt = powerKw * workload.duration;
-    
-    // Data Center Energy considering PUE
     const estimatedEnergyKwh = eIt * datacenter.pue;
-    
-    // Carbon emissions (gCO2) using time slot dynamic carbon intensity
     const carbonIntensity = slot.carbonIntensity || datacenter.carbonIntensity;
     const estimatedCarbonGco2 = estimatedEnergyKwh * carbonIntensity;
-    
-    // Electricity cost ($) using time slot dynamic price
     const price = slot.electricityPrice || datacenter.electricityPrice;
     const estimatedCostUsd = estimatedEnergyKwh * price;
 
-    // Parse times to compare SLA
     const arrivalHour = parseInt(workload.arrivalTime.split(':')[0], 10) || 8;
     const slotHour = parseInt(slot.startTime.split(':')[0], 10) || 10;
     const deadlineHour = parseInt(workload.deadline.split(':')[0], 10) || 18;
@@ -120,15 +146,11 @@ export class SimulatorService {
     };
   }
 
-  /**
-   * Generates candidate DataCenter x TimeSlot options for a specific workload
-   */
   public evaluateCandidateOptions(workloadId: string): CandidateOption[] {
     const workload = this.workloads.find((w) => w.id === workloadId) || this.workloads[0];
     const candidates: CandidateOption[] = [];
 
     this.resourcePools.forEach((pool) => {
-      // Evaluate against a subset of time slots
       this.timeSlots.slice(3, 9).forEach((slot) => {
         const metrics = this.calculateMetrics(workload, pool, slot);
         candidates.push({
@@ -153,9 +175,20 @@ export class SimulatorService {
     return candidates;
   }
 
-  /**
-   * Executes a demo simulation run on the current workload set
-   */
+  public async runAsyncSimulation(configOverride?: Partial<SimulationConfig>): Promise<SimulationResult> {
+    try {
+      const res = await apiClient.runSimulation({
+        algorithm: this.setupConfig.algorithm,
+        numWorkloads: this.setupConfig.numWorkloads,
+        randomSeed: this.setupConfig.randomSeed,
+        ...(configOverride || {}),
+      });
+      return res;
+    } catch {
+      return this.runDemoSimulation(configOverride);
+    }
+  }
+
   public runDemoSimulation(configOverride?: Partial<SimulationConfig>): SimulationResult {
     const effectiveConfig = { ...this.config, ...configOverride };
     
@@ -166,10 +199,8 @@ export class SimulatorService {
     const decisions: SchedulingDecision[] = [];
 
     this.workloads.forEach((wl, idx) => {
-      // Assign best ResourcePool/Slot according to demo multi-objective weights
       const pool = this.resourcePools[idx % this.resourcePools.length];
       const slot = this.timeSlots[(idx * 2) % this.timeSlots.length];
-
       const metrics = this.calculateMetrics(wl, pool, slot);
 
       totalEnergy += metrics.estimatedEnergyKwh;
@@ -229,7 +260,7 @@ export class SimulatorService {
       numWorkloads: expData.numWorkloads || 24,
       numDataCenters: expData.numDataCenters || 3,
       timeSlotDuration: expData.timeSlotDuration || 60,
-      algorithm: expData.algorithm || 'ECOFUSION_NSGA2',
+      algorithm: expData.algorithm || 'RANDOM',
       randomSeed: expData.randomSeed || 42,
       status: 'READY',
       createdAt: new Date().toISOString().replace('T', ' ').slice(0, 16),

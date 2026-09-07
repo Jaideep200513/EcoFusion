@@ -32,8 +32,8 @@ export const Results: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-slate-950 tracking-tight">Optimization Results Ledger</h3>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200 font-bold">
-              AUDIT TRAIL
+            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold">
+              SIMULATION RESULTS
             </span>
           </div>
           <p className="text-xs text-slate-600 mt-1">
