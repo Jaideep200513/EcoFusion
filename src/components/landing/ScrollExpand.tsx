@@ -72,11 +72,11 @@ export const ScrollExpand: React.FC<ScrollExpandProps> = ({
           className="absolute inset-0 p-8 md:p-12 flex flex-col justify-between z-10"
         >
           <div className="flex items-center justify-between">
-            <span className="px-3.5 py-1 rounded-full text-xs font-mono tracking-widest uppercase bg-white/10 text-emerald-300 border border-white/20 backdrop-blur-md">
+            <span className="px-3.5 py-1 rounded-md text-xs font-mono tracking-widest uppercase bg-white/10 text-emerald-300 border border-white/20 backdrop-blur-md">
               {title}
             </span>
             {scrollHint && (
-              <span className="text-xs font-mono text-slate-300 animate-bounce bg-black/50 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
+              <span className="text-xs font-mono text-slate-300 animate-bounce bg-black/50 px-3 py-1 rounded-md backdrop-blur-md border border-white/10">
                 ↓ {scrollHint}
               </span>
             )}

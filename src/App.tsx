@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AppLayout } from './components/layout/AppLayout';
 import { LandingPage } from './components/landing/LandingPage';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Overview } from './pages/Overview';
 import { Workloads } from './pages/Workloads';
 import { ResourcePools } from './pages/ResourcePools';
@@ -37,8 +38,10 @@ export function App() {
       onTabChange={setActiveTab}
       onNavigateLanding={() => setCurrentView('landing')}
     >
-      {({ latestResult, triggerSimulation, isSimulating }) => {
-        switch (activeTab) {
+      {({ latestResult, triggerSimulation, isSimulating }) => (
+        <ErrorBoundary key={activeTab}>
+          {(() => {
+            switch (activeTab) {
           case 'overview':
             return (
               <Overview
@@ -65,9 +68,9 @@ export function App() {
           case 'experiments':
             return <Experiments />;
           case 'results':
-            return <Results />;
+            return <Results latestResult={latestResult} />;
           case 'comparisons':
-            return <Comparisons />;
+            return <Comparisons latestResult={latestResult} />;
           case 'documentation':
             return <Documentation />;
           case 'settings':
@@ -83,8 +86,10 @@ export function App() {
               />
             );
         }
-      }}
-    </AppLayout>
+      })()}
+    </ErrorBoundary>
+  )}
+</AppLayout>
   );
 }
 

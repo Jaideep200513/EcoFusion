@@ -1,7 +1,6 @@
 import type {
   Workload,
   ResourcePool,
-  SimulationConfig,
   SimulationResult,
   Experiment,
 } from '../types';

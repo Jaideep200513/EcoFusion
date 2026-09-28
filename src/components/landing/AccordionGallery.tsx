@@ -219,10 +219,10 @@ export const AccordionGallery: React.FC<AccordionGalleryProps> = ({
                     {/* Header Top Bar */}
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <span className="px-3.5 py-1 rounded-full text-xs font-mono tracking-widest uppercase font-bold bg-white/[0.08] text-white border border-white/10">
+                        <span className="px-3.5 py-1 rounded-md text-xs font-mono tracking-widest uppercase font-bold bg-white/[0.08] text-white border border-white/10">
                           {badgeText}
                         </span>
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/20">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-mono text-emerald-300 bg-emerald-500/10 border border-emerald-500/20">
                           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                           Active Phase
                         </span>

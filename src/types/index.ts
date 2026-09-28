@@ -4,15 +4,32 @@ export interface Workload {
   id: string;
   name: string;
   arrivalTime: string; // e.g. "08:00"
-  cpuRequired: number; // cores
-  memoryRequired: number; // GB
-  duration: number; // hours
+  cpuRequired: number; // cores (requested)
+  memoryRequired: number; // GB (requested)
+  duration: number; // hours (requested)
   deadline: string; // e.g. "14:00"
   slaStatus: SLAStatus;
   assignedPoolId?: string;
   assignedDcId?: string; // backwards compatibility
   assignedTimeSlot?: string;
   status: 'PENDING' | 'SCHEDULED' | 'RUNNING' | 'COMPLETED';
+  // Random Forest Workload Prediction Model outputs
+  predictedCpu?: number;
+  predictedMemory?: number;
+  predictedDuration?: number;
+  predictionConfidence?: number; // e.g. 0.94 R²
+}
+
+export interface WorkloadPrediction {
+  workloadId: string;
+  requestedCpu: number;
+  predictedCpu: number;
+  requestedMemory: number;
+  predictedMemory: number;
+  requestedDuration: number;
+  predictedDuration: number;
+  confidenceScore: number;
+  modelName: string;
 }
 
 export interface ResourcePool {
@@ -169,10 +186,10 @@ export interface SimulationResult {
 }
 
 export interface SystemStatus {
-  datasetStatus: 'NOT_CONNECTED' | 'SAMPLE_DATA' | 'CONNECTED';
-  mlModelStatus: 'NOT_TRAINED' | 'TRAINING' | 'READY';
-  nsga2Status: 'NOT_IMPLEMENTED' | 'DEVELOPMENT' | 'READY';
-  simulationMode: 'DEMO' | 'VALIDATION' | 'PRODUCTION';
+  datasetStatus: 'ONLINE' | 'CONNECTED' | 'SAMPLE_DATA' | 'NOT_CONNECTED';
+  mlModelStatus: 'ACTIVE' | 'READY' | 'TRAINING' | 'NOT_TRAINED';
+  nsga2Status: 'CONVERGED' | 'READY' | 'DEVELOPMENT' | 'NOT_IMPLEMENTED';
+  simulationMode: 'PRODUCTION' | 'OPTIMIZATION' | 'VALIDATION' | 'DEMO';
 }
 
 export type DashboardTab =

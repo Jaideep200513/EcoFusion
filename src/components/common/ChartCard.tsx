@@ -15,24 +15,24 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   subtitle,
   children,
   action,
-  demoLabel = 'Illustrative — Demo Data',
+  demoLabel,
   height = 300,
 }) => {
   return (
-    <div className="glass-panel p-5 rounded-xl flex flex-col justify-between">
+    <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm flex flex-col justify-between">
       <div className="flex items-start justify-between mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-semibold text-slate-100">{title}</h3>
+            <h3 className="text-base font-bold text-slate-950 tracking-tight">{title}</h3>
             {demoLabel && (
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-slate-700">
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-800 border border-slate-200 font-semibold">
                 {demoLabel}
               </span>
             )}
           </div>
           {subtitle && (
-            <p className="text-xs text-slate-400 mt-0.5 flex items-center gap-1">
-              <Info className="w-3 h-3 text-slate-500" />
+            <p className="text-xs text-slate-500 mt-1 flex items-center gap-1 font-medium">
+              <Info className="w-3.5 h-3.5 text-slate-400" />
               {subtitle}
             </p>
           )}

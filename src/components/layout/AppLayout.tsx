@@ -25,7 +25,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   const [internalTab, setInternalTab] = useState<DashboardTab>('overview');
   const [isSimulating, setIsSimulating] = useState(false);
-  const [latestResult, setLatestResult] = useState<SimulationResult | null>(null);
+  const [latestResult, setLatestResult] = useState<SimulationResult | null>(() => simulatorService.getLatestResult());
+
+  React.useEffect(() => {
+    const unsub = simulatorService.subscribe(() => {
+      setLatestResult(simulatorService.getLatestResult());
+    });
+    return unsub;
+  }, []);
 
   const activeTab = controlledTab || internalTab;
   const setActiveTab = (tab: DashboardTab) => {
@@ -39,7 +46,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   const handleRunSimulation = async () => {
     setIsSimulating(true);
     try {
-      const res = await simulatorService.runAsyncSimulation();
+      const setup = simulatorService.getSimulationSetupConfig();
+      const simConfig = simulatorService.getSimulationConfig();
+      const res = await simulatorService.runAsyncSimulation({
+        ...simConfig,
+        numWorkloads: setup.numWorkloads,
+        algorithm: setup.algorithm,
+        randomSeed: setup.randomSeed,
+      });
       setLatestResult(res);
     } finally {
       setIsSimulating(false);

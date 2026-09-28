@@ -12,7 +12,7 @@ interface MetricCardProps {
     label?: string;
   };
   accentColor?: 'cyan' | 'emerald' | 'violet' | 'amber' | 'rose';
-  isDemo?: boolean;
+  badge?: string;
 }
 
 export const MetricCard: React.FC<MetricCardProps> = ({
@@ -23,31 +23,28 @@ export const MetricCard: React.FC<MetricCardProps> = ({
   icon,
   trend,
   accentColor = 'cyan',
-  isDemo = true,
+  badge,
 }) => {
   const getAccentBorder = () => {
     switch (accentColor) {
       case 'emerald':
-        return 'hover:border-emerald-500/40 text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+        return 'text-emerald-700 bg-emerald-50 border-emerald-200';
       case 'violet':
-        return 'hover:border-violet-500/40 text-violet-400 bg-violet-500/10 border-violet-500/20';
+        return 'text-purple-700 bg-purple-50 border-purple-200';
       case 'amber':
-        return 'hover:border-amber-500/40 text-amber-400 bg-amber-500/10 border-amber-500/20';
+        return 'text-amber-700 bg-amber-50 border-amber-200';
       case 'rose':
-        return 'hover:border-rose-500/40 text-rose-400 bg-rose-500/10 border-rose-500/20';
+        return 'text-rose-700 bg-rose-50 border-rose-200';
       default:
-        return 'hover:border-cyan-500/40 text-cyan-400 bg-cyan-500/10 border-cyan-500/20';
+        return 'text-slate-900 bg-slate-100 border-slate-200';
     }
   };
 
   return (
-    <div className="glass-panel p-5 rounded-xl glass-panel-hover flex flex-col justify-between relative overflow-hidden group">
-      {/* Background ambient glow */}
-      <div className="absolute -right-6 -bottom-6 w-24 h-24 rounded-full bg-slate-800/40 group-hover:bg-cyan-900/20 transition-all blur-xl pointer-events-none" />
-
+    <div className="bg-white border border-slate-200 p-5 rounded-xl shadow-sm hover:border-slate-300 transition-all flex flex-col justify-between relative overflow-hidden group">
       <div>
         <div className="flex items-center justify-between mb-3">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider font-sans">
             {title}
           </span>
           <div className={`p-2.5 rounded-lg border ${getAccentBorder()}`}>
@@ -56,32 +53,32 @@ export const MetricCard: React.FC<MetricCardProps> = ({
         </div>
 
         <div className="flex items-baseline gap-1.5">
-          <span className="text-2xl font-bold text-slate-100 tracking-tight">
+          <span className="text-2xl font-extrabold text-slate-950 font-mono tracking-tight">
             {value}
           </span>
-          {unit && <span className="text-sm font-medium text-slate-400">{unit}</span>}
+          {unit && <span className="text-xs font-semibold text-slate-500 font-sans">{unit}</span>}
         </div>
       </div>
 
-      <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+      <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
         {trend ? (
-          <div className="flex items-center gap-1.5 text-xs">
+          <div className="flex items-center gap-1.5 text-xs font-mono">
             <span
-              className={`font-semibold ${
-                trend.isPositive ? 'text-emerald-400' : 'text-amber-400'
+              className={`font-bold ${
+                trend.isPositive ? 'text-emerald-600' : 'text-amber-600'
               }`}
             >
               {trend.value}
             </span>
-            <span className="text-slate-400">{trend.label || 'vs baseline'}</span>
+            <span className="text-slate-500 font-sans font-medium">{trend.label || 'vs baseline'}</span>
           </div>
         ) : (
-          <span className="text-xs text-slate-400">{subtitle || 'Simulation state'}</span>
+          <span className="text-xs text-slate-500 font-medium">{subtitle || 'Active state'}</span>
         )}
 
-        {isDemo && (
-          <span className="text-[10px] font-mono text-slate-400 uppercase bg-slate-800/60 px-1.5 py-0.5 rounded border border-slate-700/50">
-            DEMO
+        {badge && (
+          <span className="text-[10px] font-mono text-slate-600 uppercase bg-slate-100 px-2 py-0.5 rounded font-semibold border border-slate-200">
+            {badge}
           </span>
         )}
       </div>

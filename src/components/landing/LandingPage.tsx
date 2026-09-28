@@ -433,7 +433,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchWorkspace, onN
               transition={{ duration: 0.4, delay: 0 }}
               className="relative"
             >
-              <div className="absolute -left-[41px] sm:-left-[57px] top-1.5 w-6 h-6 rounded-full bg-slate-950 text-white font-sans text-xs font-extrabold flex items-center justify-center ring-4 ring-white shadow-sm">
+              <div className="absolute -left-[41px] sm:-left-[57px] top-1.5 w-6 h-6 rounded-md bg-slate-950 text-white font-sans text-xs font-extrabold flex items-center justify-center ring-4 ring-white shadow-sm">
                 1
               </div>
               <div className="text-xs font-sans text-slate-950 uppercase font-extrabold tracking-wider mb-1 flex items-center gap-2">
@@ -455,7 +455,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchWorkspace, onN
               transition={{ duration: 0.4, delay: 0.1 }}
               className="relative"
             >
-              <div className="absolute -left-[41px] sm:-left-[57px] top-1.5 w-6 h-6 rounded-full bg-slate-950 text-white font-sans text-xs font-extrabold flex items-center justify-center ring-4 ring-white shadow-sm">
+              <div className="absolute -left-[41px] sm:-left-[57px] top-1.5 w-6 h-6 rounded-md bg-slate-950 text-white font-sans text-xs font-extrabold flex items-center justify-center ring-4 ring-white shadow-sm">
                 2
               </div>
               <div className="text-xs font-sans text-slate-950 uppercase font-extrabold tracking-wider mb-1 flex items-center gap-2">
@@ -477,7 +477,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchWorkspace, onN
               transition={{ duration: 0.4, delay: 0.2 }}
               className="relative"
             >
-              <div className="absolute -left-[41px] sm:-left-[57px] top-1.5 w-6 h-6 rounded-full bg-slate-950 text-white font-sans text-xs font-extrabold flex items-center justify-center ring-4 ring-white shadow-sm">
+              <div className="absolute -left-[41px] sm:-left-[57px] top-1.5 w-6 h-6 rounded-md bg-slate-950 text-white font-sans text-xs font-extrabold flex items-center justify-center ring-4 ring-white shadow-sm">
                 3
               </div>
               <div className="text-xs font-sans text-slate-950 uppercase font-extrabold tracking-wider mb-1 flex items-center gap-2">
@@ -499,7 +499,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchWorkspace, onN
               transition={{ duration: 0.4, delay: 0.3 }}
               className="relative"
             >
-              <div className="absolute -left-[41px] sm:-left-[57px] top-1.5 w-6 h-6 rounded-full bg-slate-950 text-white font-sans text-xs font-extrabold flex items-center justify-center ring-4 ring-white shadow-sm">
+              <div className="absolute -left-[41px] sm:-left-[57px] top-1.5 w-6 h-6 rounded-md bg-slate-950 text-white font-sans text-xs font-extrabold flex items-center justify-center ring-4 ring-white shadow-sm">
                 4
               </div>
               <div className="text-xs font-sans text-slate-950 uppercase font-extrabold tracking-wider mb-1 flex items-center gap-2">
@@ -669,7 +669,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchWorkspace, onN
                           {row.label}
                         </span>
                         {row.isEcoFusion && (
-                          <span className="text-xs uppercase font-sans font-extrabold px-2.5 py-1 rounded-full bg-slate-950 text-white">
+                          <span className="text-xs uppercase font-sans font-extrabold px-2.5 py-1 rounded-md bg-slate-950 text-white">
                             Our Framework
                           </span>
                         )}
@@ -753,7 +753,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLaunchWorkspace, onN
                   <motion.div
                     animate={{ rotate: openFaq === idx ? 180 : 0 }}
                     transition={{ duration: 0.2 }}
-                    className="w-8 h-8 rounded-full bg-slate-950 flex items-center justify-center text-white shrink-0 shadow-sm"
+                    className="w-8 h-8 rounded-lg bg-slate-950 flex items-center justify-center text-white shrink-0 shadow-sm"
                   >
                     {openFaq === idx ? <Minus className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
                   </motion.div>

@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { ResourcePool } from '../types';
 import { simulatorService } from '../services/simulatorService';
 import { Drawer } from '../components/common/Drawer';
+import { Modal } from '../components/common/Modal';
 import {
   Building2,
   MapPin,
   Server,
   Leaf,
   DollarSign,
+  Plus,
+  Power,
+  Trash2,
+  Edit2,
+  Zap,
+  Activity,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   LineChart,
@@ -20,21 +28,121 @@ import {
 } from 'recharts';
 
 export const ResourcePools: React.FC = () => {
-  const resourcePools = simulatorService.getResourcePools();
+  const [resourcePools, setResourcePools] = useState<ResourcePool[]>(simulatorService.getResourcePools());
   const [selectedPool, setSelectedPool] = useState<ResourcePool | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editPool, setEditPool] = useState<ResourcePool | null>(null);
 
-  // Hourly carbon & price forecast curves for drawer view
-  const hourlyProfileData = [
-    { hour: '00:00', carbon: (selectedPool?.carbonIntensity || 450) * 1.05, price: (selectedPool?.electricityPrice || 0.12) * 0.8 },
-    { hour: '04:00', carbon: (selectedPool?.carbonIntensity || 450) * 1.0, price: (selectedPool?.electricityPrice || 0.12) * 0.75 },
-    { hour: '08:00', carbon: (selectedPool?.carbonIntensity || 450) * 1.15, price: (selectedPool?.electricityPrice || 0.12) * 1.1 },
-    { hour: '12:00', carbon: (selectedPool?.carbonIntensity || 450) * 0.72, price: (selectedPool?.electricityPrice || 0.12) * 1.25 }, // solar peak drop
-    { hour: '16:00', carbon: (selectedPool?.carbonIntensity || 450) * 1.2, price: (selectedPool?.electricityPrice || 0.12) * 1.4 },
-    { hour: '20:00', carbon: (selectedPool?.carbonIntensity || 450) * 1.1, price: (selectedPool?.electricityPrice || 0.12) * 1.15 },
-  ];
+  const [newPool, setNewPool] = useState({
+    name: '',
+    locationLabel: '',
+    region: '',
+    cpuCapacity: 2048,
+    memoryCapacity: 8192,
+    pue: 1.2,
+    idlePowerKw: 45.0,
+    maxPowerKw: 200.0,
+    carbonIntensity: 450,
+    electricityPrice: 0.12,
+    availability: 99.95,
+  });
+
+  useEffect(() => {
+    const unsubscribe = simulatorService.subscribe(() => {
+      setResourcePools([...simulatorService.getResourcePools()]);
+    });
+    return unsubscribe;
+  }, []);
 
   const totalCores = resourcePools.reduce((acc, p) => acc + p.cpuCapacity, 0);
   const totalMemory = resourcePools.reduce((acc, p) => acc + p.memoryCapacity, 0);
+  const avgPue = (resourcePools.reduce((acc, p) => acc + p.pue, 0) / (resourcePools.length || 1)).toFixed(2);
+
+  const handleAddPool = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPool.locationLabel) return;
+
+    const created = simulatorService.addResourcePool({
+      name: newPool.name || `${newPool.locationLabel} Cloud Facility`,
+      locationLabel: newPool.locationLabel,
+      region: newPool.region || `${newPool.locationLabel}-DC1`,
+      cpuCapacity: Number(newPool.cpuCapacity),
+      memoryCapacity: Number(newPool.memoryCapacity),
+      pue: Number(newPool.pue),
+      idlePowerKw: Number(newPool.idlePowerKw),
+      maxPowerKw: Number(newPool.maxPowerKw),
+      carbonIntensity: Number(newPool.carbonIntensity),
+      electricityPrice: Number(newPool.electricityPrice),
+      availability: Number(newPool.availability),
+      status: 'ONLINE',
+    });
+
+    setSelectedPool(created);
+    setIsAddModalOpen(false);
+    setNewPool({
+      name: '',
+      locationLabel: '',
+      region: '',
+      cpuCapacity: 2048,
+      memoryCapacity: 8192,
+      pue: 1.2,
+      idlePowerKw: 45.0,
+      maxPowerKw: 200.0,
+      carbonIntensity: 450,
+      electricityPrice: 0.12,
+      availability: 99.95,
+    });
+  };
+
+  const handleEditPool = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editPool) return;
+
+    simulatorService.updateResourcePool(editPool.id, {
+      name: editPool.name,
+      locationLabel: editPool.locationLabel,
+      region: editPool.region,
+      cpuCapacity: Number(editPool.cpuCapacity),
+      memoryCapacity: Number(editPool.memoryCapacity),
+      pue: Number(editPool.pue),
+      idlePowerKw: Number(editPool.idlePowerKw),
+      maxPowerKw: Number(editPool.maxPowerKw),
+      carbonIntensity: Number(editPool.carbonIntensity),
+      electricityPrice: Number(editPool.electricityPrice),
+    });
+
+    setSelectedPool({ ...editPool });
+    setIsEditModalOpen(false);
+  };
+
+  const handleToggleStatus = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const updated = simulatorService.togglePoolStatus(id);
+    if (selectedPool?.id === id && updated) {
+      setSelectedPool({ ...updated });
+    }
+  };
+
+  const handleDeletePool = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (confirm(`Remove resource pool ${id}?`)) {
+      simulatorService.deleteResourcePool(id);
+      if (selectedPool?.id === id) {
+        setSelectedPool(null);
+      }
+    }
+  };
+
+  // Hourly carbon & price forecast curves for drawer view
+  const hourlyProfileData = [
+    { hour: '00:00', carbon: Math.round((selectedPool?.carbonIntensity || 450) * 1.05), price: Number(((selectedPool?.electricityPrice || 0.12) * 0.8).toFixed(3)) },
+    { hour: '04:00', carbon: Math.round((selectedPool?.carbonIntensity || 450) * 1.0), price: Number(((selectedPool?.electricityPrice || 0.12) * 0.75).toFixed(3)) },
+    { hour: '08:00', carbon: Math.round((selectedPool?.carbonIntensity || 450) * 1.15), price: Number(((selectedPool?.electricityPrice || 0.12) * 1.1).toFixed(3)) },
+    { hour: '12:00', carbon: Math.round((selectedPool?.carbonIntensity || 450) * 0.72), price: Number(((selectedPool?.electricityPrice || 0.12) * 1.25).toFixed(3)) },
+    { hour: '16:00', carbon: Math.round((selectedPool?.carbonIntensity || 450) * 1.2), price: Number(((selectedPool?.electricityPrice || 0.12) * 1.4).toFixed(3)) },
+    { hour: '20:00', carbon: Math.round((selectedPool?.carbonIntensity || 450) * 1.1), price: Number(((selectedPool?.electricityPrice || 0.12) * 1.15).toFixed(3)) },
+  ];
 
   return (
     <div className="space-y-6">
@@ -45,18 +153,67 @@ export const ResourcePools: React.FC = () => {
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-950 tracking-tight">Regional Resource Pools</h3>
-            <p className="text-xs text-slate-600 mt-0.5">
-              Abstract regional computing pools representing Mumbai, Hyderabad, and Singapore with dynamic PUE and grid carbon signals.
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold text-slate-950 tracking-tight">Regional Resource Pools</h3>
+              <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200 font-semibold">
+                {resourcePools.length} REGIONS
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 mt-1">
+              Geographically distributed compute pools with localized PUE, grid emission factors, and time-of-use tariffs.
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3 text-xs font-mono">
-          <span className="text-slate-600 font-medium">Total Pooled Capacity:</span>
-          <span className="font-bold text-slate-950">{totalCores.toLocaleString()} Cores</span>
-          <span className="text-slate-400">•</span>
-          <span className="font-bold text-slate-950">{(totalMemory / 1024).toFixed(1)} TB RAM</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-4 py-2 rounded-lg bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Add Regional Pool</span>
+          </button>
+        </div>
+      </div>
+
+      {/* KPI Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+            <span>Pooled Compute Cores</span>
+            <Server className="w-4 h-4 text-slate-900" />
+          </div>
+          <div className="text-xl font-mono font-extrabold text-slate-950">{totalCores.toLocaleString()} Cores</div>
+          <p className="text-[11px] text-slate-500 mt-1">Multi-region capacity</p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+            <span>Pooled Memory</span>
+            <Activity className="w-4 h-4 text-slate-900" />
+          </div>
+          <div className="text-xl font-mono font-extrabold text-slate-950">{(totalMemory / 1024).toFixed(1)} TB RAM</div>
+          <p className="text-[11px] text-slate-500 mt-1">Total hardware buffers</p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+            <span>Average PUE</span>
+            <Zap className="w-4 h-4 text-slate-900" />
+          </div>
+          <div className="text-xl font-mono font-extrabold text-slate-950">{avgPue}</div>
+          <p className="text-[11px] text-slate-500 mt-1">Facility cooling factor</p>
+        </div>
+
+        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+            <span>Operational Status</span>
+            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-xl font-mono font-extrabold text-slate-950">
+            {resourcePools.filter((p) => p.status === 'ONLINE').length} / {resourcePools.length} Online
+          </div>
+          <p className="text-[11px] text-emerald-700 font-semibold mt-1">Ready for scheduling</p>
         </div>
       </div>
 
@@ -83,28 +240,36 @@ export const ResourcePools: React.FC = () => {
                     {pool.locationLabel} · <span className="font-mono text-xs text-slate-500 font-semibold">{pool.region}</span>
                   </p>
                 </div>
-                <span className="flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-full bg-slate-100 text-slate-900 border border-slate-200 font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <button
+                  onClick={(e) => handleToggleStatus(pool.id, e)}
+                  title="Toggle Status"
+                  className={`flex items-center gap-1.5 text-xs font-mono px-2.5 py-1 rounded-md border font-bold cursor-pointer transition-colors ${
+                    pool.status === 'ONLINE'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                      : 'bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100'
+                  }`}
+                >
+                  <span className={`w-2 h-2 rounded-full ${pool.status === 'ONLINE' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`} />
                   {pool.status}
-                </span>
+                </button>
               </div>
 
               {/* Hardware Capacity Specs */}
               <div className="grid grid-cols-2 gap-3 mt-4 text-xs font-mono bg-slate-50 p-3.5 rounded-lg border border-slate-200">
                 <div>
-                  <span className="text-slate-500 text-xs uppercase block font-semibold">Compute Cores</span>
+                  <span className="text-slate-500 text-[10px] uppercase block font-bold font-sans">Compute Capacity</span>
                   <span className="font-bold text-slate-950">{pool.cpuCapacity} Cores</span>
                 </div>
                 <div>
-                  <span className="text-slate-500 text-xs uppercase block font-semibold">Memory Buffer</span>
+                  <span className="text-slate-500 text-[10px] uppercase block font-bold font-sans">Memory Pool</span>
                   <span className="font-bold text-slate-950">{pool.memoryCapacity} GB</span>
                 </div>
                 <div className="mt-1">
-                  <span className="text-slate-500 text-xs uppercase block font-semibold">PUE Factor</span>
+                  <span className="text-slate-500 text-[10px] uppercase block font-bold font-sans">Facility PUE</span>
                   <span className="font-bold text-slate-950">{pool.pue}</span>
                 </div>
                 <div className="mt-1">
-                  <span className="text-slate-500 text-xs uppercase block font-semibold">Power Range</span>
+                  <span className="text-slate-500 text-[10px] uppercase block font-bold font-sans">Power Curve</span>
                   <span className="font-bold text-slate-800">{pool.idlePowerKw} - {pool.maxPowerKw} kW</span>
                 </div>
               </div>
@@ -112,125 +277,331 @@ export const ResourcePools: React.FC = () => {
               {/* Dynamic Utilization Bar */}
               <div className="mt-4 space-y-1.5">
                 <div className="flex justify-between text-xs font-mono">
-                  <span className="text-slate-600 font-semibold">Current Load:</span>
+                  <span className="text-slate-600 font-semibold font-sans">Current Core Utilization:</span>
                   <span className="font-bold text-slate-950">{pool.currentUtilization}%</span>
                 </div>
                 <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200">
                   <div
                     className="bg-slate-950 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${pool.currentUtilization}%` }}
+                    style={{ width: `${Math.min(100, Math.max(8, pool.currentUtilization))}%` }}
                   />
                 </div>
               </div>
             </div>
 
-            {/* Environmental & Economic Telemetry */}
-            <div className="pt-4 border-t border-slate-200 space-y-2 text-xs">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 flex items-center gap-1.5 font-medium">
-                  <Leaf className="w-3.5 h-3.5 text-emerald-600" />
-                  Grid Carbon Intensity:
-                </span>
-                <span className="font-mono font-bold text-slate-950">
-                  {pool.carbonIntensity} <span className="text-xs text-slate-500 font-sans font-normal">gCO₂/kWh</span>
-                </span>
+            {/* Environmental & Cost Footprint */}
+            <div className="pt-3 border-t border-slate-200 flex items-center justify-between text-xs font-mono">
+              <div className="flex items-center gap-1.5">
+                <Leaf className="w-4 h-4 text-emerald-600" />
+                <span className="font-bold text-slate-950">{pool.carbonIntensity}</span>
+                <span className="text-slate-500 text-[11px] font-sans">gCO₂/kWh</span>
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 flex items-center gap-1.5 font-medium">
-                  <DollarSign className="w-3.5 h-3.5 text-slate-900" />
-                  Electricity Tariff:
-                </span>
-                <span className="font-mono font-bold text-slate-950">
-                  ${pool.electricityPrice} <span className="text-xs text-slate-500 font-sans font-normal">/kWh</span>
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-slate-600 flex items-center gap-1.5 font-medium">
-                  <Server className="w-3.5 h-3.5 text-slate-900" />
-                  Assigned Trace Tasks:
-                </span>
-                <span className="font-mono font-bold text-slate-950">
-                  {pool.activeWorkloadsCount} Workloads
-                </span>
+              <div className="flex items-center gap-1.5">
+                <DollarSign className="w-4 h-4 text-slate-900" />
+                <span className="font-bold text-slate-950">${pool.electricityPrice}</span>
+                <span className="text-slate-500 text-[11px] font-sans">/kWh</span>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Detail Drawer for Selected Pool */}
+      {/* Resource Pool Detail Drawer */}
       <Drawer
         isOpen={!!selectedPool}
         onClose={() => setSelectedPool(null)}
-        title={selectedPool ? `${selectedPool.name} — ${selectedPool.locationLabel}` : ''}
+        title={`Facility Profile: ${selectedPool?.id}`}
+        subtitle={`${selectedPool?.name} (${selectedPool?.region})`}
       >
         {selectedPool && (
           <div className="space-y-6">
-            {/* Header info */}
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
               <div>
-                <span className="text-xs font-mono text-slate-950 font-bold">{selectedPool.region}</span>
-                <h4 className="text-base font-bold text-slate-950 mt-0.5">{selectedPool.locationLabel} Resource Pool</h4>
+                <span className="text-xs text-slate-500 font-bold uppercase font-sans">Operational State</span>
+                <p className="text-sm font-bold text-slate-950 font-mono mt-0.5">{selectedPool.status}</p>
               </div>
-              <div className="text-right font-mono text-xs">
-                <div className="text-slate-600 font-medium">PUE Factor</div>
-                <div className="text-base font-bold text-slate-950">{selectedPool.pue}</div>
-              </div>
+              <button
+                onClick={() => handleToggleStatus(selectedPool.id)}
+                className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-bold text-slate-800 hover:bg-slate-100 transition-colors flex items-center gap-1.5 cursor-pointer"
+              >
+                <Power className="w-3.5 h-3.5" />
+                <span>Toggle Status</span>
+              </button>
             </div>
 
-            {/* Capacity Overview */}
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="p-3.5 rounded-lg bg-white border border-slate-200 shadow-sm">
-                <div className="text-[10px] font-mono text-slate-500 uppercase font-semibold">CPU Cores</div>
-                <div className="text-base font-bold font-mono text-slate-950 mt-1">{selectedPool.cpuCapacity}</div>
-              </div>
-              <div className="p-3.5 rounded-lg bg-white border border-slate-200 shadow-sm">
-                <div className="text-[10px] font-mono text-slate-500 uppercase font-semibold">RAM (GB)</div>
-                <div className="text-base font-bold font-mono text-slate-950 mt-1">{selectedPool.memoryCapacity}</div>
-              </div>
-              <div className="p-3.5 rounded-lg bg-white border border-slate-200 shadow-sm">
-                <div className="text-[10px] font-mono text-slate-500 uppercase font-semibold">Power Range</div>
-                <div className="text-xs font-bold font-mono text-slate-950 mt-1.5">{selectedPool.idlePowerKw}-{selectedPool.maxPowerKw} kW</div>
-              </div>
-            </div>
-
-            {/* 24-Hour Carbon and Price Forecast Chart */}
-            <div className="p-4 rounded-lg bg-white border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between mb-3">
-                <div>
-                  <h5 className="text-xs font-bold text-slate-950">Dynamic Grid Signals (24-Hour Horizon)</h5>
-                  <p className="text-[11px] text-slate-600">Simulated carbon intensity (gCO₂/kWh) & electricity tariff ($/kWh)</p>
+            {/* Capacity Breakdown */}
+            <div>
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-sans">
+                Infrastructure Envelope
+              </h4>
+              <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-sm">
+                  <span className="text-slate-500 font-sans block">Total CPU Nodes</span>
+                  <span className="text-base font-bold text-slate-950">{selectedPool.cpuCapacity} Cores</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-sm">
+                  <span className="text-slate-500 font-sans block">RAM Capacity</span>
+                  <span className="text-base font-bold text-slate-950">{selectedPool.memoryCapacity} GB</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-sm">
+                  <span className="text-slate-500 font-sans block">Cooling Overhead PUE</span>
+                  <span className="text-base font-bold text-slate-950">{selectedPool.pue}</span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-sm">
+                  <span className="text-slate-500 font-sans block">Active Workloads</span>
+                  <span className="text-base font-bold text-slate-950">{selectedPool.activeWorkloadsCount || 0} scheduled</span>
                 </div>
               </div>
+            </div>
 
-              <div className="h-52 w-full">
+            {/* 24-Hour Carbon and Price Forecast Curves */}
+            <div>
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 font-sans">
+                Grid Carbon Dynamics (gCO₂/kWh)
+              </h4>
+              <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm h-48 w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={hourlyProfileData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <LineChart data={hourlyProfileData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                    <XAxis dataKey="hour" stroke="#64748b" fontSize={10} tickLine={false} />
-                    <YAxis yAxisId="left" stroke="#09090b" fontSize={10} tickLine={false} />
-                    <YAxis yAxisId="right" orientation="right" stroke="#64748b" fontSize={10} tickLine={false} />
-                    <Tooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', color: '#09090b', borderRadius: '8px', fontSize: '11px' }} />
-                    <Line yAxisId="left" type="monotone" dataKey="carbon" stroke="#09090b" strokeWidth={2} name="Carbon (gCO₂)" />
-                    <Line yAxisId="right" type="monotone" dataKey="price" stroke="#64748b" strokeWidth={2} name="Price ($)" />
+                    <XAxis dataKey="hour" stroke="#64748b" fontSize={10} />
+                    <YAxis stroke="#64748b" fontSize={10} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: '#ffffff',
+                        borderColor: '#cbd5e1',
+                        borderRadius: '8px',
+                        fontSize: '11px',
+                        color: '#0f172a',
+                      }}
+                    />
+                    <Line type="monotone" dataKey="carbon" stroke="#059669" strokeWidth={2} dot={{ r: 3 }} name="Carbon (gCO₂/kWh)" />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
-            {/* Mathematical Model Context */}
-            <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 text-xs text-slate-600 space-y-2">
-              <div className="font-semibold text-slate-950">Energy & Facility Overhead Formulation:</div>
-              <div className="p-2.5 rounded bg-white border border-slate-200 font-mono text-[11px] text-slate-950 font-medium">
-                E_DC = (P_idle + (P_max - P_idle) × U) × duration × PUE
-              </div>
-              <p className="text-[11px]">
-                For this pool, facility cooling and power distribution adds {Math.round((selectedPool.pue - 1) * 100)}% overhead onto IT equipment load.
-              </p>
+            <div className="pt-2 flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setEditPool(selectedPool);
+                  setIsEditModalOpen(true);
+                }}
+                className="flex-1 py-2.5 rounded-lg bg-slate-950 text-white font-bold text-xs hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Edit2 className="w-3.5 h-3.5" />
+                <span>Edit Parameters</span>
+              </button>
+              {resourcePools.length > 1 && (
+                <button
+                  onClick={() => handleDeletePool(selectedPool.id)}
+                  className="px-4 py-2.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 font-bold text-xs border border-rose-200 transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
         )}
       </Drawer>
+
+      {/* Add Pool Modal */}
+      <Modal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        title="Add Regional Resource Pool"
+        subtitle="Provision a regional cloud data center node"
+      >
+        <form onSubmit={handleAddPool} className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-slate-700 mb-1">Facility Name</label>
+            <input
+              type="text"
+              required
+              placeholder="e.g. Frankfurt Green Compute Campus"
+              value={newPool.name}
+              onChange={(e) => setNewPool({ ...newPool, name: e.target.value })}
+              className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-medium text-slate-950"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">City / Location</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Frankfurt"
+                value={newPool.locationLabel}
+                onChange={(e) => setNewPool({ ...newPool, locationLabel: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-950"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Region Identifier</label>
+              <input
+                type="text"
+                placeholder="e.g. EU-Central-1"
+                value={newPool.region}
+                onChange={(e) => setNewPool({ ...newPool, region: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-950"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">CPU Cores Capacity</label>
+              <input
+                type="number"
+                min={256}
+                step={256}
+                value={newPool.cpuCapacity}
+                onChange={(e) => setNewPool({ ...newPool, cpuCapacity: Number(e.target.value) })}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">RAM Capacity (GB)</label>
+              <input
+                type="number"
+                min={1024}
+                step={512}
+                value={newPool.memoryCapacity}
+                onChange={(e) => setNewPool({ ...newPool, memoryCapacity: Number(e.target.value) })}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">PUE Factor</label>
+              <input
+                type="number"
+                step="0.01"
+                min="1.05"
+                max="2.0"
+                value={newPool.pue}
+                onChange={(e) => setNewPool({ ...newPool, pue: Number(e.target.value) })}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Carbon (gCO₂/kWh)</label>
+              <input
+                type="number"
+                value={newPool.carbonIntensity}
+                onChange={(e) => setNewPool({ ...newPool, carbonIntensity: Number(e.target.value) })}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Price ($/kWh)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={newPool.electricityPrice}
+                onChange={(e) => setNewPool({ ...newPool, electricityPrice: Number(e.target.value) })}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold"
+              />
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <button
+              type="submit"
+              className="w-full py-2.5 rounded-lg bg-slate-950 text-white font-bold text-xs hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
+            >
+              Provision Regional Resource Pool
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Edit Pool Modal */}
+      <Modal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        title={`Edit Facility: ${editPool?.id}`}
+        subtitle="Calibrate PUE, power ratings, and localized emissions"
+      >
+        {editPool && (
+          <form onSubmit={handleEditPool} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Facility Name</label>
+              <input
+                type="text"
+                required
+                value={editPool.name}
+                onChange={(e) => setEditPool({ ...editPool, name: e.target.value })}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-medium text-slate-950"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">CPU Capacity</label>
+                <input
+                  type="number"
+                  value={editPool.cpuCapacity}
+                  onChange={(e) => setEditPool({ ...editPool, cpuCapacity: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">RAM Capacity (GB)</label>
+                <input
+                  type="number"
+                  value={editPool.memoryCapacity}
+                  onChange={(e) => setEditPool({ ...editPool, memoryCapacity: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">PUE</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editPool.pue}
+                  onChange={(e) => setEditPool({ ...editPool, pue: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Carbon (gCO₂/kWh)</label>
+                <input
+                  type="number"
+                  value={editPool.carbonIntensity}
+                  onChange={(e) => setEditPool({ ...editPool, carbonIntensity: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Price ($/kWh)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={editPool.electricityPrice}
+                  onChange={(e) => setEditPool({ ...editPool, electricityPrice: Number(e.target.value) })}
+                  className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                className="w-full py-2.5 rounded-lg bg-slate-950 text-white font-bold text-xs hover:bg-slate-800 transition-colors shadow-sm cursor-pointer"
+              >
+                Save Facility Parameters
+              </button>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 };

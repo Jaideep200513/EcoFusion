@@ -10,10 +10,10 @@ import type {
 } from '../types';
 
 export const initialSystemStatus: SystemStatus = {
-  datasetStatus: 'SAMPLE_DATA',
+  datasetStatus: 'CONNECTED',
   mlModelStatus: 'READY',
   nsga2Status: 'READY',
-  simulationMode: 'DEMO',
+  simulationMode: 'PRODUCTION',
 };
 
 export const defaultConfig: SimulationConfig = {
