@@ -7,12 +7,7 @@ import {
   Zap,
   Leaf,
   Play,
-  ArrowRight,
   ShieldCheck,
-  Globe,
-  Sliders,
-  BarChart3,
-  BookOpen,
   GitBranch,
   Sparkles,
 } from 'lucide-react';
@@ -27,14 +22,13 @@ import {
 } from 'recharts';
 
 interface OverviewProps {
-  onNavigateTab: (tab: DashboardTab) => void;
+  onNavigateTab?: (tab: DashboardTab) => void;
   onRunSimulation: () => void;
   latestResult: SimulationResult | null;
   isSimulating?: boolean;
 }
 
 export const Overview: React.FC<OverviewProps> = ({
-  onNavigateTab,
   onRunSimulation,
   latestResult,
   isSimulating,
@@ -90,19 +84,11 @@ export const Overview: React.FC<OverviewProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => onNavigateTab('simulation-setup')}
-            className="px-4 py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-sm font-bold text-slate-800 hover:text-slate-950 transition-all cursor-pointer flex items-center gap-2 shadow-sm"
-          >
-            <Sliders className="w-4 h-4 text-slate-700" />
-            <span>Simulation Parameters</span>
-          </button>
-
+        <div className="flex items-center gap-3">
           <button
             onClick={onRunSimulation}
             disabled={isSimulating}
-            className="px-4.5 py-2.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-white text-sm font-extrabold transition-all shadow-md cursor-pointer flex items-center gap-2 border border-slate-900"
+            className="px-5 py-2.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-white text-sm font-extrabold transition-all shadow-md cursor-pointer flex items-center gap-2 border border-slate-900"
           >
             <Play className="w-4 h-4 fill-current text-white" />
             <span>{isSimulating ? 'Simulating...' : 'Run Simulation'}</span>
@@ -175,22 +161,12 @@ export const Overview: React.FC<OverviewProps> = ({
             </div>
             <h3 className="text-base font-bold text-slate-950 mt-0.5">EcoFusion Core System Architecture: Input → Decision → Result</h3>
           </div>
-          <button
-            onClick={() => onNavigateTab('documentation')}
-            className="text-xs font-bold text-slate-900 hover:text-emerald-700 flex items-center gap-1 transition-colors self-start sm:self-auto cursor-pointer"
-          >
-            <span>View Mathematical Specification</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
         </div>
 
         {/* 6 Sequential Stages */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
           {/* Stage 1: Workloads */}
-          <div
-            onClick={() => onNavigateTab('workloads')}
-            className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-100/70 transition-all cursor-pointer flex flex-col justify-between group"
-          >
+          <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between">
             <div>
               <div className="text-[10px] font-mono text-slate-500 font-bold">STAGE 01</div>
               <div className="text-xs font-bold text-slate-950 mt-1 flex items-center gap-1.5">
@@ -201,16 +177,13 @@ export const Overview: React.FC<OverviewProps> = ({
                 Arrivals, requested CPU/RAM, and duration constraints.
               </p>
             </div>
-            <div className="mt-3 text-[10px] font-mono font-bold text-slate-900">
-              {totalWorkloads} Trace Jobs →
+            <div className="mt-3 text-[10px] font-mono font-bold text-slate-700">
+              {totalWorkloads} Trace Jobs
             </div>
           </div>
 
           {/* Stage 2: RF Predictor */}
-          <div
-            onClick={() => onNavigateTab('workloads')}
-            className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-50 transition-all cursor-pointer flex flex-col justify-between"
-          >
+          <div className="p-3.5 rounded-xl border border-emerald-200 bg-emerald-50/50 flex flex-col justify-between">
             <div>
               <div className="text-[10px] font-mono text-emerald-800 font-bold">STAGE 02 · ML</div>
               <div className="text-xs font-bold text-slate-950 mt-1 flex items-center gap-1.5">
@@ -222,15 +195,12 @@ export const Overview: React.FC<OverviewProps> = ({
               </p>
             </div>
             <div className="mt-3 text-[10px] font-mono font-bold text-emerald-800">
-              Workload Predictor →
+              Workload Predictor
             </div>
           </div>
 
           {/* Stage 3: Feasibility */}
-          <div
-            onClick={() => onNavigateTab('simulation-setup')}
-            className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-100/70 transition-all cursor-pointer flex flex-col justify-between"
-          >
+          <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between">
             <div>
               <div className="text-[10px] font-mono text-slate-500 font-bold">STAGE 03</div>
               <div className="text-xs font-bold text-slate-950 mt-1 flex items-center gap-1.5">
@@ -241,16 +211,13 @@ export const Overview: React.FC<OverviewProps> = ({
                 Prunes infeasible pairs: Arrival, Deadline, Capacity.
               </p>
             </div>
-            <div className="mt-3 text-[10px] font-mono font-bold text-slate-900">
-              Valid Choices Pruned →
+            <div className="mt-3 text-[10px] font-mono font-bold text-slate-700">
+              Pruning Engine
             </div>
           </div>
 
           {/* Stage 4: NSGA-II */}
-          <div
-            onClick={() => onNavigateTab('scheduling')}
-            className="p-3.5 rounded-xl border border-slate-950 bg-slate-950 text-white shadow-sm flex flex-col justify-between cursor-pointer"
-          >
+          <div className="p-3.5 rounded-xl border border-slate-950 bg-slate-950 text-white shadow-sm flex flex-col justify-between">
             <div>
               <div className="text-[10px] font-mono text-emerald-400 font-bold">STAGE 04 · SCHEDULER</div>
               <div className="text-xs font-bold text-white mt-1 flex items-center gap-1.5">
@@ -262,15 +229,12 @@ export const Overview: React.FC<OverviewProps> = ({
               </p>
             </div>
             <div className="mt-3 text-[10px] font-mono font-bold text-emerald-400">
-              WHERE + WHEN Matrix →
+              Multi-Objective Pareto
             </div>
           </div>
 
           {/* Stage 5: Simulator */}
-          <div
-            onClick={() => onNavigateTab('results')}
-            className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-100/70 transition-all cursor-pointer flex flex-col justify-between"
-          >
+          <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between">
             <div>
               <div className="text-[10px] font-mono text-slate-500 font-bold">STAGE 05</div>
               <div className="text-xs font-bold text-slate-950 mt-1 flex items-center gap-1.5">
@@ -281,28 +245,25 @@ export const Overview: React.FC<OverviewProps> = ({
                 Computes IT energy, regional PUE, carbon, and costs.
               </p>
             </div>
-            <div className="mt-3 text-[10px] font-mono font-bold text-slate-900">
-              Energy & Carbon →
+            <div className="mt-3 text-[10px] font-mono font-bold text-slate-700">
+              Physics & Cost Ledger
             </div>
           </div>
 
           {/* Stage 6: Benchmarks */}
-          <div
-            onClick={() => onNavigateTab('comparisons')}
-            className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 hover:bg-slate-100/70 transition-all cursor-pointer flex flex-col justify-between"
-          >
+          <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50/70 flex flex-col justify-between">
             <div>
               <div className="text-[10px] font-mono text-slate-500 font-bold">STAGE 06</div>
               <div className="text-xs font-bold text-slate-950 mt-1 flex items-center gap-1.5">
-                <BarChart3 className="w-3.5 h-3.5 text-slate-900" />
-                <span>5 Baselines</span>
+                <Leaf className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Benchmarking</span>
               </div>
               <p className="text-[11px] text-slate-600 mt-1 leading-snug">
-                Evaluates Random, First-Fit, Energy, Carbon vs. EcoFusion.
+                Evaluates Single vs. Multi-Parameter heuristics.
               </p>
             </div>
-            <div className="mt-3 text-[10px] font-mono font-bold text-emerald-700">
-              Benchmark Ledger →
+            <div className="mt-3 text-[10px] font-mono font-bold text-slate-700">
+              7 Algorithm Models
             </div>
           </div>
         </div>
@@ -366,12 +327,7 @@ export const Overview: React.FC<OverviewProps> = ({
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-extrabold text-slate-950">Resource Pool Status</h3>
-              <button
-                onClick={() => onNavigateTab('resource-pools')}
-                className="text-xs text-slate-950 font-bold hover:text-slate-700 flex items-center gap-1 cursor-pointer"
-              >
-                View all <ArrowRight className="w-3 h-3" />
-              </button>
+              <span className="text-xs font-mono text-slate-500 font-bold">3 REGIONS</span>
             </div>
 
             <div className="space-y-4">
@@ -404,67 +360,9 @@ export const Overview: React.FC<OverviewProps> = ({
         </div>
       </div>
 
-      {/* Quick Access Research Workflow Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <button
-          onClick={() => onNavigateTab('simulation-setup')}
-          className="p-4 rounded-xl bg-white border border-slate-200 hover:border-slate-950 text-left transition-all cursor-pointer group shadow-xs"
-        >
-          <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-900 flex items-center justify-center text-white mb-3 group-hover:scale-105 transition-transform shadow-xs">
-            <Sliders className="w-4 h-4" />
-          </div>
-          <div className="text-sm font-bold text-slate-950">1. Simulation Setup</div>
-          <div className="text-xs text-slate-600 mt-1 font-medium leading-relaxed">Configure trace dataset, constraints, and objective weights.</div>
-        </button>
-
-        <button
-          onClick={() => onNavigateTab('scheduling')}
-          className="p-4 rounded-xl bg-slate-50 border-2 border-slate-950 hover:bg-slate-100 text-left transition-all cursor-pointer group shadow-sm"
-        >
-          <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-900 flex items-center justify-center text-white mb-3 group-hover:scale-105 transition-transform shadow-xs">
-            <Globe className="w-4 h-4" />
-          </div>
-          <div className="text-sm font-extrabold text-slate-950 flex items-center gap-1.5">
-            <span>2. WHERE + WHEN Grid</span>
-            <span className="text-[10px] font-sans px-1.5 py-0.5 rounded bg-slate-950 text-white font-bold">CORE</span>
-          </div>
-          <div className="text-xs text-slate-600 mt-1 font-medium leading-relaxed">Inspect spatial placement and temporal shift matrix.</div>
-        </button>
-
-        <button
-          onClick={() => onNavigateTab('comparisons')}
-          className="p-4 rounded-xl bg-white border border-slate-200 hover:border-slate-950 text-left transition-all cursor-pointer group shadow-xs"
-        >
-          <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-900 flex items-center justify-center text-white mb-3 group-hover:scale-105 transition-transform shadow-xs">
-            <BarChart3 className="w-4 h-4" />
-          </div>
-          <div className="text-sm font-bold text-slate-950">3. Baseline Benchmarks</div>
-          <div className="text-xs text-slate-600 mt-1 font-medium leading-relaxed">Evaluate NSGA-II against Random, First-Fit, and Single-Metric.</div>
-        </button>
-
-        <button
-          onClick={() => onNavigateTab('documentation')}
-          className="p-4 rounded-xl bg-white border border-slate-200 hover:border-slate-950 text-left transition-all cursor-pointer group shadow-xs"
-        >
-          <div className="w-8 h-8 rounded-lg bg-slate-950 border border-slate-900 flex items-center justify-center text-white mb-3 group-hover:scale-105 transition-transform shadow-xs">
-            <BookOpen className="w-4 h-4" />
-          </div>
-          <div className="text-sm font-bold text-slate-950">4. Methodology & Formulas</div>
-          <div className="text-xs text-slate-600 mt-1 font-medium leading-relaxed">Review formal IT, facility, emissions, and cost equations.</div>
-        </button>
-      </div>
-
       {/* Research Disclaimer */}
-      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3 font-medium">
-        <span>
-          <strong className="text-slate-950">Academic Framework Note:</strong> Illustrative optimization output based on trace-driven simulation runs. Actual results depend on workload characteristics and grid carbon dynamics.
-        </span>
-        <button
-          onClick={() => onNavigateTab('documentation')}
-          className="text-slate-950 hover:text-slate-700 shrink-0 font-extrabold cursor-pointer underline underline-offset-2"
-        >
-          Read Formulation Guide →
-        </button>
+      <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 font-medium">
+        <strong className="text-slate-950">Academic Framework Note:</strong> Illustrative optimization output based on trace-driven simulation runs. Actual results depend on workload characteristics and grid carbon dynamics.
       </div>
     </div>
   );

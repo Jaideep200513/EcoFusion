@@ -120,7 +120,7 @@ export interface SimulationSetupConfig {
   // Scheduling Configuration
   timeSlotDurationMinutes: number;
   simulationHorizonHours: number;
-  algorithm: 'ECOFUSION_NSGA2' | 'RANDOM' | 'FIRST_FIT' | 'ENERGY_AWARE' | 'CARBON_AWARE';
+  algorithm: 'ECOFUSION_NSGA2' | 'RANDOM' | 'FIRST_FIT' | 'ENERGY_AWARE' | 'CARBON_AWARE' | 'COST_AWARE' | 'EDF';
   slaPolicy: 'STRICT_ZERO_TOLERANCE' | 'PENALTY_BOUNDED' | 'BEST_EFFORT';
 
   // Reproducibility
@@ -139,7 +139,7 @@ export interface SimulationConfig {
   energyWeight: number; // 0..1
   costWeight: number; // 0..1
   maxSlaViolationRate: number; // %
-  algorithm: 'ECOFUSION_NSGA2' | 'RANDOM' | 'FIRST_FIT' | 'CONVENTIONAL_COST' | 'ENERGY_AWARE' | 'CARBON_AWARE';
+  algorithm: 'ECOFUSION_NSGA2' | 'RANDOM' | 'FIRST_FIT' | 'CONVENTIONAL_COST' | 'ENERGY_AWARE' | 'CARBON_AWARE' | 'COST_AWARE' | 'EDF';
 }
 
 export interface Experiment {
@@ -163,12 +163,19 @@ export interface Experiment {
 export interface AlgorithmResultComparison {
   algorithm: string;
   label: string;
+  parameterFocus?: string;
+  primaryStrength?: string;
+  tradeoffBlindspot?: string;
   totalEnergyKwh: number;
   totalCarbonKg: number;
   totalCostUsd: number;
   slaViolationRate: number;
   avgCompletionTimeHours: number;
   isEcoFusion?: boolean;
+  carbonGainVsBaselinePct?: number;
+  energyGainVsBaselinePct?: number;
+  costGainVsBaselinePct?: number;
+  compositeEfficiencyScore?: number;
 }
 
 export interface SimulationResult {

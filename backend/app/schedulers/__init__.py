@@ -2,13 +2,22 @@ from typing import Dict, Type
 from .base_scheduler import BaseScheduler
 from .random_scheduler import RandomScheduler
 from .first_fit_scheduler import FirstFitScheduler
-from .optimized_scheduler import OptimizedScheduler, CarbonAwareScheduler, EnergyAwareScheduler
+from .optimized_scheduler import (
+    OptimizedScheduler,
+    CarbonAwareScheduler,
+    EnergyAwareScheduler,
+    CostAwareScheduler,
+    EDFScheduler,
+)
 
 SCHEDULERS: Dict[str, Type[BaseScheduler]] = {
     "random": RandomScheduler,
     "first_fit": FirstFitScheduler,
     "carbon_aware": CarbonAwareScheduler,
     "energy_aware": EnergyAwareScheduler,
+    "cost_aware": CostAwareScheduler,
+    "edf": EDFScheduler,
+    "sla_aware": EDFScheduler,
     "ecofusion_nsga2": OptimizedScheduler,
     "optimized": OptimizedScheduler,
 }
@@ -31,6 +40,8 @@ __all__ = [
     "OptimizedScheduler",
     "CarbonAwareScheduler",
     "EnergyAwareScheduler",
+    "CostAwareScheduler",
+    "EDFScheduler",
     "SCHEDULERS",
     "get_scheduler",
 ]

@@ -1,0 +1,11 @@
+{
+  "experiment_id": "COMPARE-CARBON_AWARE",
+  "timestamp": "2026-09-30T11:04:45.535533+00:00",
+  "scheduler_name": "carbon_aware",
+  "random_seed": 42,
+  "total_energy_kwh": 23589.94,
+  "total_carbon_kg": 9907.78,
+  "total_cost_usd": 4246.19,
+  "sla_violation_rate_percent": 0.0,
+  "scheduled_ratio": "100/100"
+}

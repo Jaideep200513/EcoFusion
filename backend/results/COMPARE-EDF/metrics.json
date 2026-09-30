@@ -1,0 +1,23 @@
+{
+  "experiment_id": "COMPARE-EDF",
+  "scheduler_name": "edf",
+  "total_workloads": 100,
+  "scheduled_workloads": 100,
+  "unscheduled_workloads": 0,
+  "total_energy_kwh": 26490.52,
+  "total_carbon_kg": 16815.04,
+  "total_cost": 3063.49,
+  "sla_violations": 0,
+  "sla_violation_rate": 0.0,
+  "average_completion_time": 13.07,
+  "execution_metadata": {
+    "execution_time_ms": 87.57,
+    "timestamp": "2026-09-30T11:04:45.877209+00:00",
+    "seed_used": 42,
+    "version": "0.3.0",
+    "extra": {
+      "resource_pools_count": 3,
+      "time_slots_count": 24
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "experiment_id": "COMPARE-COST_AWARE",
+  "timestamp": "2026-09-30T11:04:45.775634+00:00",
+  "scheduler_name": "cost_aware",
+  "random_seed": 42,
+  "total_energy_kwh": 25860.62,
+  "total_carbon_kg": 15706.43,
+  "total_cost_usd": 2788.14,
+  "sla_violation_rate_percent": 0.0,
+  "scheduled_ratio": "100/100"
+}

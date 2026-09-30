@@ -1,216 +1,228 @@
-# EcoFusion: AI-Assisted Spatial-Temporal Workload Scheduling Framework
+# EcoFusion: Multi-Parameter AI Spatial-Temporal Cloud Scheduling Framework
 
-**EcoFusion** is an AI-assisted spatial-temporal workload scheduling and multi-objective optimization simulation framework designed for sustainable cloud computing. It determines **WHERE** (eligible cloud resource pool) and **WHEN** (feasible time slot before deadline) flexible workloads should execute to optimize environmental and operational metrics.
+**EcoFusion** is an AI-assisted spatial-temporal workload scheduling and multi-objective optimization simulation platform designed for sustainable cloud computing and data centers.
 
 ---
 
-## Architecture Overview
+## 🎯 The Core Problem & Project Innovation
+
+Traditional cloud data centers rely on **single-parameter heuristic algorithms** that optimize only one dimension in isolation:
+* **Carbon-Aware Algorithm**: Minimizes strictly carbon emissions ($\min \text{Carbon}$), but blindly routes workloads to regions with expensive green power tariffs and ignores server PUE cooling overhead.
+* **Energy-Aware Algorithm**: Minimizes strictly facility kilowatt-hours ($\min \text{Energy}$ / PUE), but frequently routes workloads to dirty coal-powered grids if their PUE happens to be low.
+* **Cost-Aware Algorithm**: Minimizes strictly electricity bills ($\min \text{Cost}$ / Tariff), shifting computation to cheap off-peak fossil fuel power.
+* **EDF / Latency-Aware Algorithm**: Rushes workloads to meet deadlines ($\min \text{Latency}$), wasting execution slack hours where clean solar/wind power is abundant.
+
+### The EcoFusion Solution
+EcoFusion formulates cloud scheduling as a **Multi-Objective Spatial-Temporal Optimization Problem (NSGA-II)** that simultaneously co-optimizes:
+$$\min \mathbf{F}(\mathbf{x}) = \begin{bmatrix} F_1(\mathbf{x}) = \text{Carbon Footprint (kg CO}_2\text{e)} \\ F_2(\mathbf{x}) = \text{Facility Energy Consumption (kWh)} \\ F_3(\mathbf{x}) = \text{Operational Electricity Cost (USD)} \\ F_4(\mathbf{x}) = \text{SLA & Latency Violations} \end{bmatrix}$$
+
+This produces empirical, mathematical evidence demonstrating how EcoFusion achieves near-optimal performance across **all metrics at once**, outperforming single-parameter algorithms that suffer severe trade-off blindspots.
+
+---
+
+## 🚀 How to Run the Project
+
+### Prerequisites
+Before running, ensure you have the following installed on your machine:
+* **Node.js** (v18.0 or higher) & `npm`
+* **Python** (v3.10, 3.11, 3.12, or 3.13) & `pip`
+* **Git** (optional, for version control)
+
+---
+
+### Step 1: Clone or Open the Workspace
+
+Open your terminal or PowerShell and navigate to the project directory:
+```bash
+cd "c:\VSCODE PROJECTS\EcoFusion"
+```
+
+---
+
+### Step 2: Set Up and Run the Backend (FastAPI)
+
+1. Open a terminal and navigate to the `backend` folder:
+   ```powershell
+   cd backend
+   ```
+
+2. (Optional but recommended) Create and activate a Python virtual environment:
+   ```powershell
+   # Windows PowerShell
+   python -m venv venv
+   .\venv\Scripts\Activate.ps1
+   ```
+
+3. Install required Python packages (including `pymoo`, `fastapi`, `openpyxl`, `pandas`, `scikit-learn`):
+   ```powershell
+   python -m pip install -r requirements.txt
+   ```
+
+4. Run the backend test suite to verify all schedulers and Excel loaders:
+   ```powershell
+   pytest tests/test_excel_and_schedulers.py -v
+   ```
+
+5. Start the FastAPI development server:
+   ```powershell
+   python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+   ```
+
+* Backend REST API will be running at: **`http://localhost:8000`**
+* Interactive Swagger API Documentation: **`http://localhost:8000/docs`**
+
+---
+
+### Step 3: Set Up and Run the Frontend (React + Vite + TypeScript)
+
+1. Open a **new / second terminal** in the project root:
+   ```powershell
+   cd "c:\VSCODE PROJECTS\EcoFusion"
+   ```
+
+2. Install frontend dependencies:
+   ```powershell
+   npm install
+   ```
+
+3. Start the Vite local development server:
+   ```powershell
+   npm run dev
+   ```
+
+* The frontend application will be running at: **`http://localhost:5173`**
+* Open your browser and navigate to `http://localhost:5173` to view the application.
+
+---
+
+### Step 4: Quick-Run Both in Parallel (Single PowerShell Window)
+
+If you prefer to start both backend and frontend from one command in Windows PowerShell:
+```powershell
+# From project root:
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend; python -m uvicorn app.main:app --reload --port 8000"
+npm run dev
+```
+
+---
+
+## 📊 Using the Excel Dataset Import & Benchmark Features
+
+### 1. Download Standardized Excel Template
+* In the UI, navigate to the **Workloads** page (`http://localhost:5173/workloads`).
+* Click **"Download Excel Template"** to receive `ecofusion_workload_template.xlsx`.
+* The template includes:
+  * **DataDictionary Sheet**: Detailed column descriptions, units, allowed bounds, and descriptions.
+  * **WorkloadDataset Sheet**: 12 pre-configured, high-precision diverse workloads (AI training, batch genomics, web tier, streaming pipelines).
+
+### 2. High-Precision Excel Import (`.xlsx` / `.xls`)
+* Click **"Import Dataset"** on the Workloads page.
+* Drag and drop your `.xlsx` or `.xls` file.
+* Review the **Pre-Import Precision Summary** showing:
+  * Total Cores requested
+  * Total RAM (GB)
+  * Mean execution duration (hours)
+  * Average deadline slack time (hours)
+  * Live 5-row dataset preview table
+* Click **"Confirm & Import"** to load the dataset into the scheduling engine.
+
+### 3. Compare Single-Parameter vs. Multi-Parameter Algorithms
+* Navigate to the **Comparisons** page (`http://localhost:5173/comparisons`).
+* Click **"Re-Run Benchmark"** to trigger live simulations across all 7 algorithms:
+  1. **EcoFusion NSGA-II** *(Multi-Parameter Co-Optimization)*
+  2. **Carbon-Aware Scheduler** *(Single-Parameter: Grid CO₂)*
+  3. **Energy-Aware Scheduler** *(Single-Parameter: Facility PUE / kWh)*
+  4. **Cost-Aware Scheduler** *(Single-Parameter: Electricity Tariffs)*
+  5. **EDF Scheduler** *(Single-Parameter: Deadline / Latency)*
+  6. **First-Fit FIFO** *(Queue baseline)*
+  7. **Random Baseline** *(Stochastic baseline)*
+* View the **Numerical Evidence Ledger** cards highlighting exact percentage gains (Carbon reduction, Energy savings, Cost savings, and SLA compliance) vs each single-parameter heuristic.
+* Click **"Export Excel"** to download the complete comparison table as an `.xlsx` workbook.
+
+---
+
+## 📐 Mathematical Formulation Reference
+
+### 1. Facility Energy Consumption
+$$E_{\text{total}} = \sum_{i=1}^N \frac{P(u_i) \times d_i \times \text{PUE}(p_i, t_{\text{start}, i})}{1000} \quad [\text{kWh}]$$
+$$\text{where } P(u) = P_{\text{idle}} + (P_{\text{max}} - P_{\text{idle}}) \times u_{\text{cpu}}$$
+
+### 2. Grid Carbon Emissions
+$$C_{\text{total}} = \sum_{i=1}^N \frac{E_{\text{total}}(i) \times \text{CI}(p_i, t_{\text{start}, i})}{1000} \quad [\text{kg CO}_2\text{e}]$$
+
+### 3. Operational Electricity Cost
+$$\text{Cost}_{\text{total}} = \sum_{i=1}^N E_{\text{total}}(i) \times \text{Tariff}(p_i, t_{\text{start}, i}) \quad [\text{USD}]$$
+
+### 4. Multi-Criteria Composite Efficiency Score
+$$\text{Efficiency Score} = \left( 1 - \frac{\|\mathbf{F}(\mathbf{x}) - \mathbf{z}^*\|_2}{\|\mathbf{z}_{\text{nadir}} - \mathbf{z}^*\|_2} \right) \times 100$$
+*(Measures closeness to the theoretical Utopia point $\mathbf{z}^*$ across all dimensions).*
+
+---
+
+## 📂 Project Architecture
 
 ```
 EcoFusion/
 ├── backend/
 │   ├── app/
 │   │   ├── main.py                     # FastAPI application entry point & CORS
-│   │   ├── api/                        # REST API endpoint routes
-│   │   │   ├── routes_workloads.py
-│   │   │   ├── routes_resource_pools.py
-│   │   │   ├── routes_simulations.py
-│   │   │   ├── routes_experiments.py
-│   │   │   ├── routes_prediction.py   # Prediction training & inference routes
-│   │   │   └── routes_optimization.py # NSGA-II optimization & benchmark comparison routes
-│   │   ├── models/                     # Strongly-typed Pydantic schemas
-│   │   │   ├── workload.py
-│   │   │   ├── resource_pool.py
-│   │   │   ├── simulation.py
-│   │   │   ├── scheduling.py
-│   │   │   └── experiment.py
-│   │   ├── prediction/                 # ML Workload Demand Predictor (Random Forest)
-│   │   │   ├── schemas.py              # Prediction I/O schemas
-│   │   │   ├── dataset_builder.py      # Synthetic historical trace builder
-│   │   │   ├── feature_engineering.py  # Feature preprocessor
-│   │   │   ├── model.py                # WorkloadPredictor model wrapper
-│   │   │   ├── train.py                # Model training & MAE/RMSE/R² evaluation
-│   │   │   └── predict.py              # Inference service
-│   │   ├── optimization/               # NSGA-II Multi-Objective Optimizer (pymoo)
-│   │   │   ├── schemas.py              # Optimization & Pareto solution schemas
-│   │   │   ├── chromosome.py           # Integer gene encoding/decoding
-│   │   │   ├── repair.py               # Feasibility-preserving repair operator
-│   │   │   ├── problem.py              # EcoFusionSchedulingProblem (3 objectives)
-│   │   │   ├── nsga2_optimizer.py      # NSGA-II runner algorithm
-│   │   │   └── compromise_selector.py  # Normalized weighted best-compromise selector
-│   │   ├── services/                   # Core mathematical & simulation engines
-│   │   │   ├── workload_service.py     # Reproducible synthetic workload generator
-│   │   │   ├── resource_pool_service.py# Virtualized pool configuration loader
-│   │   │   ├── time_slot_service.py    # Discrete 1-hour slot generator
-│   │   │   ├── capacity_tracker.py     # Spatial-temporal CPU/RAM tracker
-│   │   │   ├── energy_service.py       # IT & PUE energy calculator
-│   │   │   ├── carbon_service.py       # Carbon emissions evaluator
-│   │   │   ├── cost_service.py         # Electricity cost calculator
-│   │   │   ├── sla_service.py          # Deadline compliance evaluator
-│   │   │   └── simulation_service.py   # Simulation pipeline orchestrator
-│   │   ├── schedulers/                 # Scheduler implementations
-│   │   │   ├── base_scheduler.py       # Common scheduler interface
-│   │   │   ├── random_scheduler.py     # Random candidate baseline
-│   │   │   ├── first_fit_scheduler.py  # First-Fit chronological heuristic
-│   │   │   └── optimized_scheduler.py  # NSGA-II, Carbon-Aware, and Energy-Aware schedulers
-│   │   └── utils/                      # Seed reproducibility & validators
-│   │       ├── random_utils.py
-│   │       └── validation.py
-│   ├── config/                         # External JSON configurations
-│   │   ├── datacenters.json            # Simulated resource pools (Mumbai, Hyderabad, Singapore)
-│   │   ├── simulation.json             # Default simulation settings
-│   │   └── experiments.json            # Tracking metadata
-│   ├── models/artifacts/               # Saved ML predictor artifacts (joblib)
-│   ├── results/                        # Persisted experiment run outputs (EXP-XXX)
-│   ├── tests/                          # Pytest test suite (35 tests)
-│   │   ├── test_models.py
-│   │   ├── test_services.py
-│   │   ├── test_schedulers.py
-│   │   ├── test_pipeline_integration.py
-│   │   ├── test_prediction.py
-│   │   ├── test_optimization.py
-│   │   └── test_pipeline_week4.py
-│   ├── pytest.ini                      # Pytest execution configuration
-│   └── requirements.txt                # Python dependencies
-├── src/                                # Vite + React + TypeScript Frontend
-│   ├── components/                     # Modern UI components
-│   ├── pages/                          # Workspace view pages
-│   ├── services/                       # API client & local simulator service fallback
-│   └── types/                          # Shared TypeScript interfaces
+│   │   ├── api/                        # REST API routes
+│   │   │   ├── routes_workloads.py     # Excel upload (.xlsx/.xls), template, export
+│   │   │   ├── routes_experiments.py   # Multi-algorithm benchmark comparison
+│   │   │   ├── routes_optimization.py  # NSGA-II Pareto optimization
+│   │   │   ├── routes_simulations.py   # Simulation execution & history
+│   │   │   └── routes_prediction.py    # Random Forest workload predictor
+│   │   ├── schedulers/                 # Algorithm implementations
+│   │   │   ├── optimized_scheduler.py  # Carbon-Aware, Energy-Aware, Cost-Aware, EDF, NSGA-II
+│   │   │   ├── first_fit_scheduler.py  # First-Fit baseline
+│   │   │   └── random_scheduler.py     # Random baseline
+│   │   ├── services/
+│   │   │   ├── workload_service.py     # Excel parser & workload generator
+│   │   │   ├── capacity_tracker.py     # 2D spatial-temporal CPU/RAM tracker
+│   │   │   ├── energy_service.py       # PUE & server power calculator
+│   │   │   ├── carbon_service.py       # Regional grid emissions evaluator
+│   │   │   └── cost_service.py         # Dynamic tariff calculator
+│   │   └── models/                     # Pydantic schemas
+│   ├── tests/                          # Automated Pytest test suite
+│   ├── config/                         # Data center pool configs (Mumbai, Hyderabad, Singapore)
+│   └── requirements.txt                # Python dependencies (openpyxl, pymoo, fastapi, pandas)
+├── src/                                # React + Vite + TypeScript Frontend
+│   ├── pages/
+│   │   ├── Workloads.tsx               # Excel import modal & template download
+│   │   ├── Comparisons.tsx             # Multi vs Single parameter numerical evidence
+│   │   ├── Experiments.tsx             # Experiment runner
+│   │   ├── Simulation.tsx              # Timeline visualizer
+│   │   └── Overview.tsx                # Dashboard summary
+│   ├── services/
+│   │   ├── simulatorService.ts         # In-browser fallback engine & Excel parser
+│   │   └── apiClient.ts                # Backend API connector
+│   └── types/                          # TypeScript interfaces
 ├── package.json
 └── README.md
 ```
 
 ---
 
-## Methodology & Mathematical Models
+## 🧪 Testing and Verification
 
-### 1. Workload Prediction (Random Forest)
-Uses a multi-target Random Forest Regressor (`scikit-learn`) to predict workload CPU cores, RAM requirements, and execution duration from historical arrival patterns, priority levels, and past usage means. Evaluated via MAE, RMSE, and $R^2$ regression metrics.
-
-### 2. Decision Variable Chromosome Encoding
-Each chromosome vector represents a candidate schedule for $N$ workloads across $M$ resource pools and $K$ discrete time slots:
-$$\text{Gene}_i = \text{Pool\_Index}_i \times K + \text{Time\_Slot\_Index}_i \quad \forall i \in [0, N-1]$$
-- $\text{Pool\_Index}_i = \lfloor \text{Gene}_i / K \rfloor$
-- $\text{Time\_Slot\_Index}_i = \text{Gene}_i \pmod K$
-
-### 3. Feasibility Repair Operator & Constraint Handling
-The custom repair operator (`EcoFusionRepair`) validates every gene for:
-1. $\text{Start Time} \ge \text{Arrival Time}$
-2. $\text{Completion Time} \le \text{Deadline}$
-3. $\text{Completion Time} \le \text{Simulation Horizon}$
-4. $\text{Spatial-Temporal Capacity Tracker fit check}$
-
-If violated, the repair operator replaces the gene with the first valid candidate pair $(\text{Pool}', \text{Slot}')$. Unscheduled workloads accrue constraint violation penalties.
-
-### 4. Multi-Objective Optimization Problem Formulations
-NSGA-II minimizes three competing objectives simultaneously:
-- $F_1 = \text{Total Carbon Emissions (kgCO}_2)$
-- $F_2 = \text{Total Energy Consumption (kWh)}$
-- $F_3 = \text{Total Operational Cost (USD)}$
-
-Subject to constraint $G_1 = \text{Unscheduled Workloads} \le 0$.
-
-### 5. Best-Compromise Solution Selection
-Selection from the non-dominated Pareto front uses normalized weighted objective scoring:
-$$\text{Score}(s) = w_{\text{carbon}} \cdot \hat{F}_1(s) + w_{\text{energy}} \cdot \hat{F}_2(s) + w_{\text{cost}} \cdot \hat{F}_3(s) + w_{\text{sla}} \cdot \text{SLA\_Violation\_Rate}(s)$$
-
----
-
-## Baseline Schedulers Compared
-
-1. **EcoFusion NSGA-II (`ecofusion_nsga2`)**: Multi-objective evolutionary optimization Pareto front.
-2. **Carbon-Aware Greedy (`carbon_aware`)**: Priority routing to pools with lowest carbon intensity.
-3. **Energy-Aware Greedy (`energy_aware`)**: Priority routing to pools with lowest PUE ratings.
-4. **First-Fit Heuristic (`first_fit`)**: Chronological first-available capacity search.
-5. **Random Scheduler (`random`)**: Seeded random baseline.
-
----
-
-## Setup & Running Instructions
-
-### Backend Setup (FastAPI)
+### Backend Verification
 ```powershell
 cd backend
-
-# Install dependencies (scikit-learn, pymoo, joblib, etc.)
-python -m pip install -r requirements.txt
-
-# Run pytest test suite (35 unit & integration tests)
-pytest tests -v
-
-# Start FastAPI development server
-uvicorn app.main:app --reload --port 8000
+python -m pytest tests/test_excel_and_schedulers.py -v
 ```
-Backend API running at: `http://localhost:8000` (Docs at `http://localhost:8000/docs`).
 
-### Frontend Setup (React + Vite)
+### Frontend Build Verification
 ```powershell
-# From project root
-npm install
-npm run dev
-```
-Frontend UI running at: `http://localhost:5173`.
-
----
-
-## Example API Requests
-
-### 1. Train Prediction Model
-```http
-POST http://localhost:8000/api/prediction/train
-Content-Type: application/json
-
-{
-  "sample_count": 1000,
-  "n_estimators": 100,
-  "random_state": 42
-}
-```
-
-### 2. Execute NSGA-II Optimization
-```http
-POST http://localhost:8000/api/optimization/run
-Content-Type: application/json
-
-{
-  "sim_config": {
-    "num_workloads": 30,
-    "random_seed": 42
-  },
-  "opt_config": {
-    "population_size": 50,
-    "generations": 50,
-    "enable_prediction": false
-  }
-}
-```
-
-### 3. Fetch Algorithm Benchmark Comparisons
-```http
-POST http://localhost:8000/api/experiments/compare
-Content-Type: application/json
-
-{
-  "num_workloads": 30,
-  "random_seed": 42
-}
+npm run build
 ```
 
 ---
 
-## Current Limitations (Week 4)
+## 🛠️ Troubleshooting
 
-- **Synthetic Training Data**: Random Forest predictor uses synthetic historical trace observations.
-- **Simulated Resource Pools**: Resource pools are aggregated virtualized representations (Mumbai, Hyderabad, Singapore).
-- **Static Environmental Signals**: Carbon intensity and electricity prices are static per pool.
-- **Indirect Cooling**: Data center cooling overhead is modeled via PUE.
-- **No Host-Level Migration**: Physical server host-level VM migrations are not modeled.
-
----
-
-## Week 5 Roadmap
-
-- **Dynamic Grid Carbon & Tariff Signals**: Dynamic hourly grid carbon intensity and time-of-use (ToU) electricity tariffs.
-- **Advanced Deep Learning Predictors**: Compare Random Forest against LSTM / Transformer architectures.
-- **Interactive Pareto Visualizer**: Fine-grained objective weight sliders on the UI.
+* **Backend `ModuleNotFoundError: No module named 'openpyxl'`**:
+  Make sure you ran `pip install -r requirements.txt` in the python environment being used.
+* **Port 8000 already in use**:
+  Run uvicorn on another port with `--port 8080`, and update `VITE_API_URL` if needed.
+* **Excel sheet format error**:
+  Ensure the imported file has `.xlsx` or `.xls` extension and contains required columns (`name`, `cpu_cores`, `ram_gb`, `duration_hours`, `arrival_time`, `deadline`). You can use the downloadable template as a standard reference.

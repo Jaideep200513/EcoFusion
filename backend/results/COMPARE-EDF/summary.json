@@ -1,0 +1,11 @@
+{
+  "experiment_id": "COMPARE-EDF",
+  "timestamp": "2026-09-30T11:04:45.877209+00:00",
+  "scheduler_name": "edf",
+  "random_seed": 42,
+  "total_energy_kwh": 26490.52,
+  "total_carbon_kg": 16815.04,
+  "total_cost_usd": 3063.49,
+  "sla_violation_rate_percent": 0.0,
+  "scheduled_ratio": "100/100"
+}

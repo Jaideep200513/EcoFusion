@@ -23,6 +23,8 @@ import {
   Upload,
   Clock,
   ShieldCheck,
+  AlertTriangle,
+  Check,
 } from 'lucide-react';
 
 export const Workloads: React.FC = () => {
@@ -38,6 +40,20 @@ export const Workloads: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [activeImportTab, setActiveImportTab] = useState<'presets' | 'upload' | 'synthetic'>('presets');
   const [importNotice, setImportNotice] = useState<string | null>(null);
+  const [pendingImportData, setPendingImportData] = useState<{
+    fileName: string;
+    fileSize: string;
+    sheetName?: string;
+    count: number;
+    summary: {
+      totalRows: number;
+      totalCpuCores: number;
+      totalMemoryGb: number;
+      avgDurationHours: number;
+    };
+    warnings: string[];
+    workloads: Workload[];
+  } | null>(null);
 
   // Form states
   const [newWorkload, setNewWorkload] = useState({
@@ -165,49 +181,62 @@ export const Workloads: React.FC = () => {
     }, 1200);
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const text = event.target?.result as string;
-        let parsed: any[] = [];
-        if (file.name.endsWith('.json')) {
-          parsed = JSON.parse(text);
-        } else {
-          // Simple CSV Parser
-          const lines = text.split('\n').filter((l) => l.trim().length > 0);
-          parsed = lines.slice(1).map((line, idx) => {
-            const parts = line.split(',');
-            return {
-              id: `W-CSV-${idx + 1}`,
-              name: parts[0]?.trim() || `CSV Task ${idx + 1}`,
-              cpuRequired: Number(parts[1]) || 32,
-              memoryRequired: Number(parts[2]) || 128,
-              duration: Number(parts[3]) || 2,
-              arrivalTime: parts[4]?.trim() || '00:00',
-              deadline: parts[5]?.trim() || '08:00',
-            };
-          });
-        }
+    try {
+      const fileSizeStr = file.size > 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(2)} MB`
+        : `${(file.size / 1024).toFixed(1)} KB`;
 
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          simulatorService.importWorkloads(parsed);
-          setImportNotice(`Successfully ingested ${parsed.length} workloads from ${file.name}`);
-          setTimeout(() => {
-            setImportNotice(null);
-            setIsImportModalOpen(false);
-          }, 1200);
-        } else {
-          alert('Could not detect valid workload records in the uploaded file.');
-        }
-      } catch (err) {
-        alert('Failed to parse file: ' + String(err));
+      if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls') || file.name.endsWith('.csv')) {
+        const buffer = await file.arrayBuffer();
+        const parsed = simulatorService.parseExcelWorkloadBuffer(buffer);
+        setPendingImportData({
+          fileName: file.name,
+          fileSize: fileSizeStr,
+          sheetName: parsed.sheetNames[0],
+          count: parsed.workloads.length,
+          summary: parsed.summary,
+          warnings: parsed.warnings,
+          workloads: parsed.workloads,
+        });
+      } else if (file.name.endsWith('.json')) {
+        const text = await file.text();
+        const raw = JSON.parse(text);
+        if (!Array.isArray(raw)) throw new Error('JSON file must be an array of workload objects.');
+        simulatorService.importWorkloads(raw);
+        setImportNotice(`Successfully ingested ${raw.length} workloads from JSON.`);
+        setTimeout(() => {
+          setImportNotice(null);
+          setIsImportModalOpen(false);
+        }, 1200);
+      } else {
+        alert('Unsupported file format. Please upload .xlsx, .xls, .csv, or .json file.');
       }
-    };
-    reader.readAsText(file);
+    } catch (err: any) {
+      alert(`Failed to parse file "${file.name}": ${err.message || String(err)}`);
+    }
+  };
+
+  const handleConfirmPendingImport = () => {
+    if (!pendingImportData) return;
+    simulatorService.importWorkloads(pendingImportData.workloads);
+    setImportNotice(`Successfully ingested ${pendingImportData.count} workloads from ${pendingImportData.fileName}`);
+    setPendingImportData(null);
+    setTimeout(() => {
+      setImportNotice(null);
+      setIsImportModalOpen(false);
+    }, 1200);
+  };
+
+  const handleDownloadTemplate = () => {
+    simulatorService.downloadExcelTemplate();
+  };
+
+  const handleExportExcel = () => {
+    simulatorService.exportWorkloadsToExcel();
   };
 
   const handleGenerateSynthetic = () => {
@@ -217,16 +246,6 @@ export const Workloads: React.FC = () => {
       setImportNotice(null);
       setIsImportModalOpen(false);
     }, 1200);
-  };
-
-  const handleExportJson = () => {
-    const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(workloads, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute('href', dataStr);
-    downloadAnchor.setAttribute('download', `ecofusion_workload_registry_${Date.now()}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
   };
 
   return (
@@ -252,27 +271,28 @@ export const Workloads: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
+            onClick={() => setIsImportModalOpen(true)}
+            className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+          >
+            <Upload className="w-4 h-4 text-white" />
+            <span>Import Dataset</span>
+          </button>
+
+          <button
             onClick={() => setIsAddModalOpen(true)}
-            className="px-4 py-2 rounded-lg bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer"
+            className="px-3.5 py-2 rounded-lg bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Add Workload</span>
           </button>
 
           <button
-            onClick={() => setIsImportModalOpen(true)}
-            className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 font-bold text-xs flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+            onClick={handleExportExcel}
+            className="px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+            title="Export workload registry as Excel (.xlsx)"
           >
-            <FileSpreadsheet className="w-4 h-4 text-slate-700" />
-            <span>Ingest Traces</span>
-          </button>
-
-          <button
-            onClick={handleExportJson}
-            className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-bold text-xs flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
-          >
-            <Download className="w-4 h-4 text-slate-500" />
-            <span>Export JSON</span>
+            <Download className="w-4 h-4 text-emerald-600" />
+            <span>Export Excel</span>
           </button>
         </div>
       </div>
@@ -722,18 +742,166 @@ export const Workloads: React.FC = () => {
 
           {/* Tab 2: Upload */}
           {activeImportTab === 'upload' && (
-            <div className="p-6 border-2 border-dashed border-slate-200 rounded-xl text-center space-y-3 bg-slate-50/50">
-              <Upload className="w-8 h-8 mx-auto text-slate-400" />
-              <div>
-                <p className="text-sm font-bold text-slate-950">Drag & drop workload file here</p>
-                <p className="text-xs text-slate-500 mt-0.5">Supports CSV (name, cpu, mem, dur, arrival, deadline) or JSON arrays</p>
-              </div>
-              <div>
-                <label className="inline-block px-4 py-2 rounded-lg bg-slate-950 text-white font-bold text-xs cursor-pointer hover:bg-slate-800 transition-colors shadow-sm">
-                  Browse Files
-                  <input type="file" accept=".json,.csv" onChange={handleFileUpload} className="hidden" />
-                </label>
-              </div>
+            <div className="space-y-4 pt-2">
+              {pendingImportData ? (
+                /* Pre-Import Verification & Precision Analysis Card */
+                <div className="p-5 rounded-xl border border-emerald-300 bg-emerald-50/40 space-y-4 animate-fade-in">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-emerald-200">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-lg bg-emerald-600 text-white shadow-sm">
+                        <FileSpreadsheet className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h5 className="text-sm font-bold text-slate-950 font-mono">{pendingImportData.fileName}</h5>
+                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold">
+                            VALIDATED
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-600 mt-0.5">
+                          {pendingImportData.fileSize} • Sheet: <span className="font-semibold text-slate-800">{pendingImportData.sheetName || 'Default'}</span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setPendingImportData(null)}
+                        className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 hover:bg-slate-100 text-xs font-bold transition-colors cursor-pointer"
+                      >
+                        Choose Another
+                      </button>
+                      <button
+                        onClick={handleConfirmPendingImport}
+                        className="px-4 py-1.5 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition-colors shadow-sm cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Confirm & Ingest ({pendingImportData.count})</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Aggregate Precision Metrics */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <div className="text-[10px] uppercase font-bold text-slate-500">Total Workloads</div>
+                      <div className="text-lg font-mono font-bold text-slate-950 mt-0.5">{pendingImportData.summary.totalRows} Tasks</div>
+                      <div className="text-[10px] text-slate-500">100% Parsed</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <div className="text-[10px] uppercase font-bold text-slate-500">Aggregate CPU</div>
+                      <div className="text-lg font-mono font-bold text-slate-950 mt-0.5">{pendingImportData.summary.totalCpuCores} Cores</div>
+                      <div className="text-[10px] text-slate-500">Avg {(pendingImportData.summary.totalCpuCores / pendingImportData.summary.totalRows).toFixed(1)}/task</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <div className="text-[10px] uppercase font-bold text-slate-500">Aggregate Memory</div>
+                      <div className="text-lg font-mono font-bold text-slate-950 mt-0.5">{pendingImportData.summary.totalMemoryGb} GB</div>
+                      <div className="text-[10px] text-slate-500">Avg {(pendingImportData.summary.totalMemoryGb / pendingImportData.summary.totalRows).toFixed(1)} GB/task</div>
+                    </div>
+                    <div className="p-3 rounded-lg bg-white border border-slate-200 shadow-xs">
+                      <div className="text-[10px] uppercase font-bold text-slate-500">Avg Duration</div>
+                      <div className="text-lg font-mono font-bold text-slate-950 mt-0.5">{pendingImportData.summary.avgDurationHours}h</div>
+                      <div className="text-[10px] text-slate-500">Execution Horizon</div>
+                    </div>
+                  </div>
+
+                  {/* Warnings if any */}
+                  {pendingImportData.warnings.length > 0 && (
+                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
+                      <div className="font-bold flex items-center gap-1.5">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                        <span>{pendingImportData.warnings.length} Deadline Adjustments</span>
+                      </div>
+                      <p className="text-[11px] text-amber-800">
+                        {pendingImportData.warnings.slice(0, 2).join('; ')}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Preview Table of First 5 rows */}
+                  <div className="space-y-1.5">
+                    <div className="text-xs font-bold text-slate-700">Sample Ingested Records (First 5 Rows):</div>
+                    <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white">
+                      <table className="w-full text-left text-xs font-mono">
+                        <thead className="bg-slate-50 border-b border-slate-200 text-[10px] text-slate-600 uppercase font-sans">
+                          <tr>
+                            <th className="py-2 px-3">ID</th>
+                            <th className="py-2 px-3">Job Name</th>
+                            <th className="py-2 px-3 text-right">Arrival</th>
+                            <th className="py-2 px-3 text-right">CPU</th>
+                            <th className="py-2 px-3 text-right">RAM (GB)</th>
+                            <th className="py-2 px-3 text-right">Duration</th>
+                            <th className="py-2 px-3 text-right">Deadline</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {pendingImportData.workloads.slice(0, 5).map((w) => (
+                            <tr key={w.id} className="hover:bg-slate-50">
+                              <td className="py-1.5 px-3 font-bold text-slate-900">{w.id}</td>
+                              <td className="py-1.5 px-3 font-sans truncate max-w-[140px] text-slate-700">{w.name}</td>
+                              <td className="py-1.5 px-3 text-right text-slate-600">{w.arrivalTime}</td>
+                              <td className="py-1.5 px-3 text-right font-bold text-slate-900">{w.cpuRequired}</td>
+                              <td className="py-1.5 px-3 text-right text-slate-700">{w.memoryRequired}</td>
+                              <td className="py-1.5 px-3 text-right text-slate-700">{w.duration}h</td>
+                              <td className="py-1.5 px-3 text-right font-bold text-emerald-700">{w.deadline}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Drag & Drop Upload Zone */
+                <div className="space-y-4">
+                  <div className="p-8 border-2 border-dashed border-slate-300 hover:border-emerald-500 rounded-xl text-center space-y-3 bg-slate-50/70 transition-colors">
+                    <div className="p-3 rounded-full bg-emerald-100 text-emerald-800 w-12 h-12 mx-auto flex items-center justify-center">
+                      <FileSpreadsheet className="w-6 h-6 text-emerald-700" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-950">Upload Excel (.xlsx / .xls) or CSV Dataset</p>
+                      <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                        Supports high-precision decimal columns for exact CPU cores, memory GB, duration hours, arrival times, and hard SLA deadlines.
+                      </p>
+                    </div>
+                    <div className="pt-2">
+                      <label className="inline-block px-5 py-2.5 rounded-lg bg-slate-950 text-white font-bold text-xs cursor-pointer hover:bg-slate-800 transition-colors shadow-sm">
+                        <span>Select File from Computer</span>
+                        <input
+                          type="file"
+                          accept=".xlsx,.xls,.csv,.json"
+                          onChange={handleFileUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    <div className="text-[11px] text-slate-400 font-mono">
+                      Supported formats: Microsoft Excel (.xlsx, .xls), Comma-Separated Values (.csv), JSON array (.json)
+                    </div>
+                  </div>
+
+                  {/* Standardized Template Helper Card */}
+                  <div className="p-4 rounded-xl border border-slate-200 bg-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-slate-950">Need the standardized schema?</span>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200 font-semibold">
+                          PRECISION TEMPLATE
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Download pre-formatted Excel workbook containing sample realistic data center traces and complete data dictionary.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleDownloadTemplate}
+                      className="px-3.5 py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Download .xlsx Template</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
