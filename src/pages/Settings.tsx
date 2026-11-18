@@ -197,9 +197,12 @@ export const Settings: React.FC = () => {
                   onChange={(e) => setConfig({ ...config, algorithm: e.target.value as any })}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-slate-950 font-semibold"
                 >
+                  <option value="ALL_STRATEGIES">All Strategies (Full 7-Model Suite)</option>
                   <option value="ECOFUSION_NSGA2">EcoFusion NSGA-II Multi-Objective</option>
                   <option value="CARBON_AWARE">Carbon-Aware Heuristic</option>
                   <option value="ENERGY_AWARE">Energy-Aware Heuristic</option>
+                  <option value="COST_AWARE">Cost-Aware Heuristic</option>
+                  <option value="EDF">Earliest Deadline First (EDF)</option>
                   <option value="FIRST_FIT">First-Fit Heuristic</option>
                   <option value="RANDOM">Random Baseline</option>
                 </select>

@@ -1,0 +1,28 @@
+{
+  "simulation_start": 0.0,
+  "simulation_end": 24.0,
+  "slot_duration_minutes": 60,
+  "random_seed": 42,
+  "scheduler_name": "ECOFUSION_NSGA2",
+  "include_unassigned_workloads": true,
+  "workload_dataset_name": "synthetic_100",
+  "num_workloads": 24,
+  "cpu_min": 16.0,
+  "cpu_max": 256.0,
+  "memory_min": 64.0,
+  "memory_max": 1024.0,
+  "duration_min": 1.0,
+  "duration_max": 6.0,
+  "deadline_slack_hours": 4.0,
+  "population_size": 50,
+  "generations": 50,
+  "crossover_prob": 0.9,
+  "mutation_prob": 0.1,
+  "enable_prediction": false,
+  "compromise_weights": {
+    "carbon": 0.4,
+    "energy": 0.3,
+    "cost": 0.3,
+    "sla": 1.0
+  }
+}

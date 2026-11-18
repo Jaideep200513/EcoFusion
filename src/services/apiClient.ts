@@ -17,10 +17,19 @@ export class ApiClient {
   public async checkHealth(): Promise<boolean> {
     try {
       const res = await fetch(`${this.baseUrl}/health`, { method: 'GET' });
-      return res.ok;
-    } catch {
-      return false;
+      if (res.ok) return true;
+    } catch {}
+
+    if (this.baseUrl.includes('localhost')) {
+      try {
+        const altRes = await fetch('http://127.0.0.1:8000/health', { method: 'GET' });
+        if (altRes.ok) {
+          this.baseUrl = 'http://127.0.0.1:8000';
+          return true;
+        }
+      } catch {}
     }
+    return false;
   }
 
   public async getWorkloads(count: number = 100, seed: number = 42): Promise<Workload[]> {

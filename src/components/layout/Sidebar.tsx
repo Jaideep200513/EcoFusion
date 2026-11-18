@@ -2,13 +2,12 @@ import React, { useState } from 'react';
 import {
   LayoutDashboard,
   Server,
+  Building2,
   SlidersHorizontal,
   PlayCircle,
   BarChart3,
   GitCompare,
   MoreHorizontal,
-  Settings,
-  BookOpen,
   ArrowLeft,
   ChevronDown,
   Zap,
@@ -24,6 +23,7 @@ interface SidebarProps {
 const primary = [
   { id: 'overview' as DashboardTab, label: 'Dashboard', icon: LayoutDashboard },
   { id: 'workloads' as DashboardTab, label: 'Workloads', icon: Server },
+  { id: 'resource-pools' as DashboardTab, label: 'Resource Pools', icon: Building2 },
   { id: 'simulation-setup' as DashboardTab, label: 'Setup', icon: SlidersHorizontal },
   { id: 'scheduling' as DashboardTab, label: 'Run Scheduler', icon: PlayCircle },
   { id: 'results' as DashboardTab, label: 'Results', icon: BarChart3 },
@@ -31,7 +31,6 @@ const primary = [
 ];
 
 const advanced = [
-  { id: 'resource-pools' as DashboardTab, label: 'Resource Pools' },
   { id: 'experiments' as DashboardTab, label: 'Experiments' },
   { id: 'documentation' as DashboardTab, label: 'Documentation' },
   { id: 'settings' as DashboardTab, label: 'Settings' },

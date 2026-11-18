@@ -32,23 +32,39 @@ export const Scheduling: React.FC = () => {
   const [resourcePools, setResourcePools] = useState(simulatorService.getResourcePools());
   const [timeSlots] = useState(simulatorService.getTimeSlots());
   const [paretoPoints, setParetoPoints] = useState<ParetoPoint[]>(simulatorService.getLatestParetoSolutions());
+  const [hasSimulationRun, setHasSimulationRun] = useState<boolean>(() => Boolean(simulatorService.getLatestResult()));
 
-  const [selectedWorkloadId, setSelectedWorkloadId] = useState<string>(workloads[0]?.id || 'W1');
+  const [selectedWorkloadId, setSelectedWorkloadId] = useState<string>(() => workloads[0]?.id || 'W1');
   const activeWorkload = workloads.find((w) => w.id === selectedWorkloadId) || workloads[0];
-  const candidateOptions: CandidateOption[] = simulatorService.evaluateCandidateOptions(selectedWorkloadId);
+  const candidateOptions: CandidateOption[] = activeWorkload ? simulatorService.evaluateCandidateOptions(activeWorkload.id) : [];
 
-  const [selectedCandidate, setSelectedCandidate] = useState<CandidateOption | null>(
-    candidateOptions.find((c) => c.slaFeasible) || candidateOptions[0] || null
-  );
+  const [selectedCandidate, setSelectedCandidate] = useState<CandidateOption | null>(null);
+
+  // Dynamically resolve active candidate to ensure it never becomes stale after a simulation run
+  const activeCandidate =
+    (selectedCandidate && candidateOptions.find((c) => c.poolId === selectedCandidate.poolId && c.timeSlotId === selectedCandidate.timeSlotId)) ||
+    (activeWorkload && candidateOptions.find((c) => (c.poolId === activeWorkload.assignedPoolId || c.poolId === activeWorkload.assignedDcId) && (c.timeSlotId === `TS-${String(activeWorkload.assignedTimeSlot || '').padStart(2, '0')}` || c.timeSlotId === activeWorkload.assignedTimeSlot))) ||
+    candidateOptions.find((c) => c.slaFeasible) ||
+    candidateOptions[0] ||
+    null;
 
   useEffect(() => {
     const unsubscribe = simulatorService.subscribe(() => {
-      setWorkloads([...simulatorService.getWorkloads()]);
+      const freshWorkloads = simulatorService.getWorkloads();
+      setWorkloads([...freshWorkloads]);
       setResourcePools([...simulatorService.getResourcePools()]);
       setParetoPoints([...simulatorService.getLatestParetoSolutions()]);
+      setHasSimulationRun(Boolean(simulatorService.getLatestResult()));
+
+      // If the currently selected workload is no longer in the list, point to the first available
+      if (freshWorkloads.length > 0 && !freshWorkloads.some((w) => w.id === selectedWorkloadId)) {
+        setSelectedWorkloadId(freshWorkloads[0].id);
+      }
+      // Reset selected candidate override so the new simulation placement is highlighted
+      setSelectedCandidate(null);
     });
     return unsubscribe;
-  }, []);
+  }, [selectedWorkloadId]);
 
   const handleSelectWorkload = (wlId: string) => {
     setSelectedWorkloadId(wlId);
@@ -60,6 +76,8 @@ export const Scheduling: React.FC = () => {
   const handleSelectParetoSolution = (solutionKey: string) => {
     simulatorService.selectParetoSolution(solutionKey);
     setParetoPoints([...simulatorService.getLatestParetoSolutions()]);
+    setWorkloads([...simulatorService.getWorkloads()]);
+    setResourcePools([...simulatorService.getResourcePools()]);
   };
 
   // Real grid mapping: where each workload is placed in (WHERE pool × WHEN time slot)
@@ -74,6 +92,91 @@ export const Scheduling: React.FC = () => {
   });
 
   const activePareto = paretoPoints.find((p) => p.selected) || paretoPoints[0];
+
+  if (workloads.length === 0) {
+    return (
+      <div className="space-y-6">
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm flex items-start gap-3.5">
+          <div className="w-10 h-10 rounded-lg bg-slate-950 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <GitBranch className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-950 tracking-tight">Spatial-Temporal Scheduling Matrix</h3>
+            <p className="text-sm text-slate-600 mt-1">
+              Multi-objective optimization mapping computational jobs across regional resource pools (WHERE) and discrete hourly time slots (WHEN).
+            </p>
+          </div>
+        </div>
+
+        <div className="p-12 rounded-2xl bg-white border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-slate-950 text-white flex items-center justify-center mx-auto shadow-sm">
+            <GitBranch className="w-6 h-6 text-emerald-400" />
+          </div>
+          <h4 className="text-lg font-extrabold text-slate-950">No Workloads to Schedule</h4>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            No workloads have been loaded yet. Go back to the <strong className="text-slate-800">Workloads</strong> section to create a new dataset, add workloads manually, or import a dataset, then return here to run the simulation.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasSimulationRun) {
+    const setupConfig = simulatorService.getSimulationSetupConfig();
+    return (
+      <div className="space-y-6">
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm flex items-start gap-3.5">
+          <div className="w-10 h-10 rounded-lg bg-slate-950 text-white flex items-center justify-center shrink-0 shadow-sm">
+            <GitBranch className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-slate-950 tracking-tight">Spatial-Temporal Scheduling Matrix</h3>
+            <p className="text-sm text-slate-600 mt-1">
+              All pre-simulation steps are complete. Review your configuration summary below and click <strong>Run Simulation</strong> at the bottom of the page.
+            </p>
+          </div>
+        </div>
+
+        <div className="p-10 rounded-2xl bg-white border border-slate-200 shadow-sm text-center space-y-6">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-xs">
+            <Sparkles className="w-7 h-7" />
+          </div>
+
+          <div className="space-y-2 max-w-lg mx-auto">
+            <span className="text-[11px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">
+              All Setup Steps Reviewed
+            </span>
+            <h4 className="text-xl font-extrabold text-slate-950">
+              Ready to Execute Spatial-Temporal Simulation
+            </h4>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              You have reviewed the Dashboard, Workloads, Resource Pools, and Simulation Setup. Click the <strong className="text-slate-900">Run Simulation ({workloads.length} Workloads)</strong> button at the bottom right of this page to execute the scheduler.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="text-[10px] font-mono uppercase text-slate-500 font-bold">Queued Workloads</div>
+              <div className="text-lg font-mono font-extrabold text-slate-950 mt-1">{workloads.length} Tasks</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">RF Demand Predicted</div>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="text-[10px] font-mono uppercase text-slate-500 font-bold">Regional Pools</div>
+              <div className="text-lg font-mono font-extrabold text-slate-950 mt-1">{resourcePools.filter((p) => p.status === 'ONLINE').length} Active</div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Multi-region PUE & Grid</div>
+            </div>
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-200">
+              <div className="text-[10px] font-mono uppercase text-slate-500 font-bold">Execution Scope</div>
+              <div className="text-sm font-mono font-extrabold text-emerald-700 mt-1 truncate">
+                {setupConfig.algorithm === 'ALL_STRATEGIES' ? 'All 7 Models (Full Suite)' : setupConfig.algorithm}
+              </div>
+              <div className="text-[11px] text-slate-500 mt-0.5">Benchmarked on same dataset</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -361,7 +464,7 @@ export const Scheduling: React.FC = () => {
                     <ShieldCheck className="w-4 h-4 text-emerald-600" />
                     <h4 className="text-sm font-bold text-slate-950">Stage 04: NSGA-II Solution</h4>
                   </div>
-                  {selectedCandidate?.slaFeasible ? (
+                  {activeCandidate?.slaFeasible ? (
                     <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 flex items-center gap-1">
                       <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Feasible
                     </span>
@@ -375,11 +478,11 @@ export const Scheduling: React.FC = () => {
                 <div className="text-xs space-y-1 font-mono">
                   <div className="flex justify-between py-1 border-b border-slate-100">
                     <span className="text-slate-500 font-sans">Assigned Pool:</span>
-                    <span className="font-bold text-slate-950">{selectedCandidate?.datacenterName || selectedCandidate?.poolName || 'Mumbai'}</span>
+                    <span className="font-bold text-slate-950">{activeCandidate?.datacenterName || activeCandidate?.poolName || 'Mumbai'}</span>
                   </div>
                   <div className="flex justify-between py-1 border-b border-slate-100">
                     <span className="text-slate-500 font-sans">Assigned Window:</span>
-                    <span className="font-bold text-slate-950">{selectedCandidate?.timeSlotLabel || '10:00 - 11:00'}</span>
+                    <span className="font-bold text-slate-950">{activeCandidate?.timeSlotLabel || '10:00 - 11:00'}</span>
                   </div>
                 </div>
 
@@ -389,8 +492,8 @@ export const Scheduling: React.FC = () => {
                       <Zap className="w-3.5 h-3.5 text-slate-900" />
                       <span className="font-semibold font-sans">E_DC</span>
                     </div>
-                    <p className="text-sm font-bold font-mono text-slate-950">{selectedCandidate?.estimatedEnergy || 0} kWh</p>
-                    <p className="text-[10px] text-slate-500 font-mono">PUE: {selectedCandidate?.pue || 1.2}</p>
+                    <p className="text-sm font-bold font-mono text-slate-950">{activeCandidate?.estimatedEnergy || 0} kWh</p>
+                    <p className="text-[10px] text-slate-500 font-mono">PUE: {activeCandidate?.pue || 1.2}</p>
                   </div>
 
                   <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
@@ -398,8 +501,8 @@ export const Scheduling: React.FC = () => {
                       <Leaf className="w-3.5 h-3.5 text-emerald-600" />
                       <span className="font-semibold font-sans">Carbon</span>
                     </div>
-                    <p className="text-sm font-bold font-mono text-slate-950">{selectedCandidate?.estimatedCarbon || 0}g</p>
-                    <p className="text-[10px] text-slate-500 font-mono">{selectedCandidate?.carbonIntensity || 420} g/kWh</p>
+                    <p className="text-sm font-bold font-mono text-slate-950">{activeCandidate?.estimatedCarbon || 0}g</p>
+                    <p className="text-[10px] text-slate-500 font-mono">{activeCandidate?.carbonIntensity || 420} g/kWh</p>
                   </div>
 
                   <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
@@ -407,8 +510,8 @@ export const Scheduling: React.FC = () => {
                       <DollarSign className="w-3.5 h-3.5 text-slate-900" />
                       <span className="font-semibold font-sans">Cost</span>
                     </div>
-                    <p className="text-sm font-bold font-mono text-slate-950">${selectedCandidate?.estimatedCost || 0}</p>
-                    <p className="text-[10px] text-slate-500 font-mono">${selectedCandidate?.electricityPrice || 0.12}/kWh</p>
+                    <p className="text-sm font-bold font-mono text-slate-950">${activeCandidate?.estimatedCost || 0}</p>
+                    <p className="text-[10px] text-slate-500 font-mono">${activeCandidate?.electricityPrice || 0.12}/kWh</p>
                   </div>
                 </div>
               </div>
@@ -444,7 +547,7 @@ export const Scheduling: React.FC = () => {
                   </thead>
                   <tbody>
                     {candidateOptions.slice(0, 8).map((cand, idx) => {
-                      const isSelected = selectedCandidate?.timeSlotId === cand.timeSlotId && selectedCandidate?.poolId === cand.poolId;
+                      const isSelected = activeCandidate?.timeSlotId === cand.timeSlotId && activeCandidate?.poolId === cand.poolId;
                       const candLabel = String.fromCharCode(65 + idx);
                       return (
                         <tr

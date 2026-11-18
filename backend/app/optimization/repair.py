@@ -32,7 +32,7 @@ class EcoFusionRepair(Repair):
         self.slot_duration_hours = config.slot_duration_minutes / 60.0
 
     def _do(self, problem, X, **kwargs):
-        X_repaired = np.copy(X)
+        X_repaired = np.copy(X).astype(int)
 
         for row_idx in range(len(X_repaired)):
             chromosome = X_repaired[row_idx]
@@ -41,8 +41,8 @@ class EcoFusionRepair(Repair):
             for wl_idx, wl in enumerate(self.workloads):
                 gene = int(chromosome[wl_idx])
                 p_idx, s_idx = decode_gene(gene, self.num_slots)
-                p_idx = min(p_idx, self.num_pools - 1)
-                s_idx = min(s_idx, self.num_slots - 1)
+                p_idx = max(0, min(p_idx, self.num_pools - 1))
+                s_idx = max(0, min(s_idx, self.num_slots - 1))
 
                 pool = self.pools[p_idx]
                 slot = self.slots[s_idx]
@@ -59,25 +59,48 @@ class EcoFusionRepair(Repair):
 
                 if is_valid:
                     capacity_tracker.reserve(pool.id, s_idx, duration_slots, wl.cpu_required, wl.memory_required)
+                    chromosome[wl_idx] = encode_gene(p_idx, s_idx, self.num_slots)
                 else:
-                    # Search alternative feasible candidate
                     found_alt = False
-                    for alt_p_idx, alt_pool in enumerate(self.pools):
-                        if not alt_pool.available:
-                            continue
-                        for alt_s_idx, alt_slot in enumerate(self.slots):
-                            alt_comp = alt_slot.start_time + wl.duration
+                    slot_order = sorted(range(self.num_slots), key=lambda s: abs(s - s_idx))
+
+                    # 1. Search feasible slot within the SAME pool first (preserving spatial GA intent)
+                    if pool.available:
+                        for cand_s in slot_order:
+                            c_slot = self.slots[cand_s]
+                            c_comp = c_slot.start_time + wl.duration
                             if (
-                                alt_slot.start_time >= (wl.arrival_time - 1e-5) and
-                                alt_comp <= (wl.deadline + 1e-5) and
-                                alt_comp <= (self.config.simulation_end + 1e-5) and
-                                capacity_tracker.can_fit(alt_pool.id, alt_s_idx, duration_slots, wl.cpu_required, wl.memory_required)
+                                c_slot.start_time >= (wl.arrival_time - 1e-5) and
+                                c_comp <= (wl.deadline + 1e-5) and
+                                c_comp <= (self.config.simulation_end + 1e-5) and
+                                capacity_tracker.can_fit(pool.id, cand_s, duration_slots, wl.cpu_required, wl.memory_required)
                             ):
-                                capacity_tracker.reserve(alt_pool.id, alt_s_idx, duration_slots, wl.cpu_required, wl.memory_required)
-                                chromosome[wl_idx] = encode_gene(alt_p_idx, alt_s_idx, self.num_slots)
+                                capacity_tracker.reserve(pool.id, cand_s, duration_slots, wl.cpu_required, wl.memory_required)
+                                chromosome[wl_idx] = encode_gene(p_idx, cand_s, self.num_slots)
                                 found_alt = True
                                 break
-                        if found_alt:
-                            break
+
+                    # 2. Search alternative pools if same pool cannot accommodate
+                    if not found_alt:
+                        other_pools = [p for p in range(self.num_pools) if p != p_idx]
+                        for alt_p in other_pools:
+                            alt_pool = self.pools[alt_p]
+                            if not alt_pool.available:
+                                continue
+                            for cand_s in slot_order:
+                                c_slot = self.slots[cand_s]
+                                c_comp = c_slot.start_time + wl.duration
+                                if (
+                                    c_slot.start_time >= (wl.arrival_time - 1e-5) and
+                                    c_comp <= (wl.deadline + 1e-5) and
+                                    c_comp <= (self.config.simulation_end + 1e-5) and
+                                    capacity_tracker.can_fit(alt_pool.id, cand_s, duration_slots, wl.cpu_required, wl.memory_required)
+                                ):
+                                    capacity_tracker.reserve(alt_pool.id, cand_s, duration_slots, wl.cpu_required, wl.memory_required)
+                                    chromosome[wl_idx] = encode_gene(alt_p, cand_s, self.num_slots)
+                                    found_alt = True
+                                    break
+                            if found_alt:
+                                break
 
         return X_repaired

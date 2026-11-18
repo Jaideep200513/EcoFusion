@@ -84,3 +84,46 @@ def test_compromise_selection():
 
     assert best_sol is not None
     assert best_sol.score >= 0.0
+
+
+def test_nsga2_pareto_frontier_diversity():
+    """Verify NSGA-II finds a valid Pareto front with proper objective evaluations."""
+    sim_cfg = SimulationConfig(num_workloads=25, random_seed=42)
+    opt_cfg = OptimizationConfig(population_size=25, generations=15, random_seed=42)
+
+    workloads = generate_workloads(25, sim_cfg, seed=42)
+    pools = get_default_resource_pools()
+    slots = generate_time_slots(sim_cfg)
+
+    opt_res = run_nsga2_optimization(workloads, pools, slots, sim_cfg, opt_cfg)
+
+    assert len(opt_res.pareto_solutions) >= 1
+    # Check that solutions have valid positive objectives
+    for sol in opt_res.pareto_solutions:
+        assert sol.carbon_kg > 0
+        assert sol.energy_kwh > 0
+        assert sol.cost_usd > 0
+        assert sol.scheduled_workloads + sol.unscheduled_workloads == 25
+
+
+def test_nsga2_feasibility_guarantee():
+    """Verify that decisions returned by NSGA-II respect temporal and pool constraints."""
+    sim_cfg = SimulationConfig(num_workloads=20, random_seed=42)
+    opt_cfg = OptimizationConfig(population_size=20, generations=10, random_seed=42)
+
+    workloads = generate_workloads(20, sim_cfg, seed=42)
+    pools = get_default_resource_pools()
+    slots = generate_time_slots(sim_cfg)
+
+    opt_res = run_nsga2_optimization(workloads, pools, slots, sim_cfg, opt_cfg)
+    best_sol = opt_res.selected_solution
+
+    wl_dict = {w.id: w for w in workloads}
+    for decision in best_sol.assignments:
+        if decision.status.value == "SCHEDULED":
+            wl = wl_dict[decision.workload_id]
+            assert decision.start_time >= wl.arrival_time - 1e-5
+            assert decision.end_time <= wl.deadline + 1e-5
+            assert decision.end_time <= sim_cfg.simulation_end + 1e-5
+            assert decision.sla_met is True
+

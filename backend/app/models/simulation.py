@@ -8,6 +8,10 @@ class TimeSlot(BaseModel):
     start_time: float = Field(..., description="Start time offset in hours from simulation start")
     end_time: float = Field(..., description="End time offset in hours from simulation start")
     slot_duration_minutes: int = Field(default=60, description="Duration of slot in minutes")
+    carbon_multiplier: float = Field(default=1.0, description="Diurnal grid carbon intensity multiplier")
+    tariff_multiplier: float = Field(default=1.0, description="Time-of-Use electricity tariff multiplier")
+    pue_offset: float = Field(default=0.0, description="Diurnal ambient thermal cooling PUE offset")
+    renewable_ratio: float = Field(default=35.0, description="Percentage of renewable energy on grid")
 
 
 class SimulationConfig(BaseModel):

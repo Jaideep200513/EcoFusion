@@ -29,16 +29,18 @@ import {
 
 export const Workloads: React.FC = () => {
   const [workloads, setWorkloads] = useState<Workload[]>(simulatorService.getWorkloads());
-  const [resourcePools] = useState(simulatorService.getResourcePools());
+  const [resourcePools, setResourcePools] = useState(simulatorService.getResourcePools());
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
 
   // Drawer & Modal state
   const [selectedWorkload, setSelectedWorkload] = useState<Workload | null>(null);
+  const [isCreateNewModalOpen, setIsCreateNewModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [activeImportTab, setActiveImportTab] = useState<'presets' | 'upload' | 'synthetic'>('presets');
+  const [showCreateNewOptions, setShowCreateNewOptions] = useState(false);
+  const [activeImportTab, setActiveImportTab] = useState<'presets' | 'upload' | 'synthetic'>('upload');
   const [importNotice, setImportNotice] = useState<string | null>(null);
   const [pendingImportData, setPendingImportData] = useState<{
     fileName: string;
@@ -70,13 +72,14 @@ export const Workloads: React.FC = () => {
   const [editWorkload, setEditWorkload] = useState<Workload | null>(null);
 
   // Synthetic Generator state
-  const [syntheticCount, setSyntheticCount] = useState<number>(24);
+  const [syntheticCount, setSyntheticCount] = useState<number>(500);
   const [syntheticSeed, setSyntheticSeed] = useState<number>(42);
 
   // Subscribe to simulator service state
   useEffect(() => {
     const unsubscribe = simulatorService.subscribe(() => {
       setWorkloads([...simulatorService.getWorkloads()]);
+      setResourcePools([...simulatorService.getResourcePools()]);
     });
     return unsubscribe;
   }, []);
@@ -94,7 +97,7 @@ export const Workloads: React.FC = () => {
   const totalRam = workloads.reduce((sum, w) => sum + w.memoryRequired, 0);
   const avgDuration = workloads.length > 0 ? (workloads.reduce((sum, w) => sum + w.duration, 0) / workloads.length).toFixed(1) : '0';
   const compliantCount = workloads.filter((w) => w.slaStatus === 'COMPLIANT').length;
-  const compliantPercent = workloads.length > 0 ? Math.round((compliantCount / workloads.length) * 100) : 100;
+  const compliantPercent = workloads.length > 0 ? Math.round((compliantCount / workloads.length) * 100) : 0;
 
   const handleAddWorkload = (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,25 +163,31 @@ export const Workloads: React.FC = () => {
   };
 
   const handleLoadTracePreset = (presetName: string) => {
-    let count = 24;
+    let count = 500;
     let seed = 42;
+    let label = 'Google Cluster Trace v2';
     if (presetName === 'alibaba') {
-      count = 32;
+      count = 750;
       seed = 108;
+      label = 'Alibaba Cloud GPU & AI Workloads';
     } else if (presetName === 'azure') {
-      count = 40;
+      count = 1000;
       seed = 256;
+      label = 'Azure VM Fleet Workloads';
     } else if (presetName === 'llm') {
-      count = 16;
+      count = 600;
       seed = 999;
+      label = 'LLM Batch Trace';
     }
 
     simulatorService.generateSyntheticWorkloads(count, seed);
-    setImportNotice(`Loaded ${count} workloads from ${presetName.toUpperCase()} trace.`);
+    setImportNotice(`Loaded ${count} workloads from ${label}.`);
+    setShowCreateNewOptions(false);
     setTimeout(() => {
       setImportNotice(null);
       setIsImportModalOpen(false);
-    }, 1200);
+      setIsCreateNewModalOpen(false);
+    }, 900);
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -271,209 +280,432 @@ export const Workloads: React.FC = () => {
 
         <div className="flex flex-wrap items-center gap-2.5">
           <button
-            onClick={() => setIsImportModalOpen(true)}
+            onClick={() => {
+              if (workloads.length === 0) {
+                setShowCreateNewOptions(true);
+              } else {
+                setIsCreateNewModalOpen(true);
+              }
+            }}
+            className="px-4 py-2 rounded-lg bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+          >
+            <Plus className="w-4 h-4 text-emerald-400" />
+            <span>Create New</span>
+          </button>
+
+          <button
+            onClick={() => {
+              setActiveImportTab('upload');
+              setIsImportModalOpen(true);
+            }}
             className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
           >
             <Upload className="w-4 h-4 text-white" />
             <span>Import Dataset</span>
           </button>
 
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="px-3.5 py-2 rounded-lg bg-slate-950 hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Workload</span>
-          </button>
+          {workloads.length > 0 && (
+            <>
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-900 border border-slate-300 font-bold text-xs flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+              >
+                <Plus className="w-4 h-4 text-slate-700" />
+                <span>Add Workload Manually</span>
+              </button>
 
-          <button
-            onClick={handleExportExcel}
-            className="px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
-            title="Export workload registry as Excel (.xlsx)"
-          >
-            <Download className="w-4 h-4 text-emerald-600" />
-            <span>Export Excel</span>
-          </button>
+              <button
+                onClick={handleExportExcel}
+                className="px-3.5 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+                title="Export workload registry as Excel (.xlsx)"
+              >
+                <Download className="w-4 h-4 text-emerald-600" />
+                <span>Export Excel</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  if (confirm('Clear all workloads from the registry?')) {
+                    simulatorService.clearWorkloads();
+                    setSelectedWorkload(null);
+                    setShowCreateNewOptions(false);
+                  }
+                }}
+                className="px-3.5 py-2 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold text-xs flex items-center gap-1.5 transition-colors shadow-sm cursor-pointer"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Clear</span>
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Architecture Insight: ML Predictor vs Optimizer */}
-      <div className="p-4 rounded-xl bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm border border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
-            <Sparkles className="w-4 h-4" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-white tracking-wide uppercase">Stage 02: Workload Demand Prediction Model</span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 font-bold">
-                Random Forest Regressor (R² = 0.94)
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 mt-0.5">
-              The Random Forest model predicts actual runtime CPU/RAM utilization and execution duration from trace characteristics. The NSGA-II scheduler then uses these predictions to evaluate optimal <strong className="text-white">WHERE (Resource Pool)</strong> + <strong className="text-white">WHEN (Time Slot)</strong> placements.
-            </p>
-          </div>
-        </div>
-      </div>
+      {workloads.length === 0 ? (
+        /* Empty State: Create New or Import Dataset */
+        <div className="bg-white border border-slate-200 rounded-2xl p-8 md:p-12 shadow-sm">
+          {!showCreateNewOptions ? (
+            <div className="max-w-2xl mx-auto text-center space-y-6">
+              <div className="w-14 h-14 rounded-2xl bg-slate-950 text-white flex items-center justify-center mx-auto shadow-md">
+                <Server className="w-7 h-7 text-emerald-400" />
+              </div>
 
-      {/* KPI Stats Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
-            <span>Aggregated CPU Load</span>
-            <Cpu className="w-4 h-4 text-slate-900" />
-          </div>
-          <div className="text-xl font-mono font-extrabold text-slate-950">{totalCores.toLocaleString()} Cores</div>
-          <p className="text-[11px] text-slate-500 mt-1">Across all trace workloads</p>
-        </div>
+              <div className="space-y-2">
+                <h4 className="text-xl font-extrabold text-slate-950 tracking-tight">
+                  No Workloads Loaded Yet
+                </h4>
+                <p className="text-sm text-slate-500 max-w-lg mx-auto leading-relaxed">
+                  Your workload registry starts empty with no pre-loaded data. Choose <strong className="text-slate-800">Create New</strong> to select from 3 curated cloud datasets or add workloads manually, or <strong className="text-slate-800">Import Dataset</strong> to upload your own file.
+                </p>
+              </div>
 
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
-            <span>Aggregated RAM Buffer</span>
-            <HardDrive className="w-4 h-4 text-slate-900" />
-          </div>
-          <div className="text-xl font-mono font-extrabold text-slate-950">{totalRam.toLocaleString()} GB</div>
-          <p className="text-[11px] text-slate-500 mt-1">Dynamic working memory</p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
-            <span>Mean Duration</span>
-            <Clock className="w-4 h-4 text-slate-900" />
-          </div>
-          <div className="text-xl font-mono font-extrabold text-slate-950">{avgDuration} hrs</div>
-          <p className="text-[11px] text-slate-500 mt-1">Discrete execution window</p>
-        </div>
-
-        <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
-            <span>SLA Compliance</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          </div>
-          <div className="text-xl font-mono font-extrabold text-slate-950">{compliantPercent}%</div>
-          <p className="text-[11px] text-emerald-700 font-semibold mt-1">{compliantCount} / {workloads.length} on-time</p>
-        </div>
-      </div>
-
-      {/* Search & Filters */}
-      <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search workloads by ID, name, or pool..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-950 placeholder-slate-400 focus:outline-none focus:border-slate-950 focus:bg-white transition-colors"
-          />
-        </div>
-
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <SlidersHorizontal className="w-4 h-4 text-slate-500" />
-          <span className="text-xs text-slate-600 font-semibold uppercase tracking-wider">Status:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-950 focus:outline-none focus:border-slate-950 focus:bg-white transition-colors font-semibold"
-          >
-            <option value="ALL">All Statuses ({workloads.length})</option>
-            <option value="SCHEDULED">Scheduled</option>
-            <option value="RUNNING">Running</option>
-            <option value="COMPLETED">Completed</option>
-            <option value="PENDING">Pending</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Workload Table */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 text-slate-600 uppercase font-sans border-b border-slate-200">
-              <tr>
-                <th className="px-4 py-3 font-bold">Workload ID & Name</th>
-                <th className="px-4 py-3 font-bold">Arrival</th>
-                <th className="px-4 py-3 font-bold">Requested CPU</th>
-                <th className="px-4 py-3 font-bold">RF Predicted</th>
-                <th className="px-4 py-3 font-bold">RAM (GB)</th>
-                <th className="px-4 py-3 font-bold">Duration</th>
-                <th className="px-4 py-3 font-bold">Deadline</th>
-                <th className="px-4 py-3 font-bold">SLA Margin</th>
-                <th className="px-4 py-3 font-bold">Assigned Pool</th>
-                <th className="px-4 py-3 font-bold">Slot</th>
-                <th className="px-4 py-3 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200 text-slate-800">
-              {filteredWorkloads.map((wl) => (
-                <tr
-                  key={wl.id}
-                  onClick={() => setSelectedWorkload(wl)}
-                  className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-left">
+                <button
+                  onClick={() => setShowCreateNewOptions(true)}
+                  className="p-6 rounded-2xl border-2 border-slate-200 hover:border-slate-950 bg-slate-50/60 hover:bg-white transition-all cursor-pointer group flex flex-col justify-between space-y-4 shadow-xs hover:shadow-md"
                 >
-                  <td className="px-4 py-3.5 font-medium">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-[11px] font-bold">
-                        {wl.id}
-                      </span>
-                      <span className="text-slate-950 font-semibold group-hover:text-slate-700 transition-colors">
-                        {wl.name}
+                  <div className="w-11 h-11 rounded-xl bg-slate-950 text-white flex items-center justify-center group-hover:bg-emerald-600 transition-colors shadow-sm">
+                    <Plus className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h5 className="text-base font-extrabold text-slate-950 group-hover:text-emerald-700 transition-colors">
+                      Create New
+                    </h5>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Choose from 3 benchmark cloud workload datasets or add custom workloads manually.
+                    </p>
+                  </div>
+                  <div className="text-xs font-bold text-slate-950 group-hover:text-emerald-600 flex items-center gap-1 pt-1">
+                    <span>Select dataset or add manually →</span>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActiveImportTab('upload');
+                    setIsImportModalOpen(true);
+                  }}
+                  className="p-6 rounded-2xl border-2 border-slate-200 hover:border-emerald-600 bg-slate-50/60 hover:bg-white transition-all cursor-pointer group flex flex-col justify-between space-y-4 shadow-xs hover:shadow-md"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-emerald-600 text-white flex items-center justify-center group-hover:bg-emerald-700 transition-colors shadow-sm">
+                    <Upload className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h5 className="text-base font-extrabold text-slate-950 group-hover:text-emerald-700 transition-colors">
+                      Import Dataset
+                    </h5>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Upload an external workload dataset file (.xlsx, .xls, .csv, or .json) from your computer.
+                    </p>
+                  </div>
+                  <div className="text-xs font-bold text-emerald-700 flex items-center gap-1 pt-1">
+                    <span>Upload file from computer →</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* When "Create New" is clicked: 3 Dataset Options + Add Workloads Manually button */
+            <div className="max-w-3xl mx-auto space-y-6 animate-fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-200">
+                <div>
+                  <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-200">
+                    Create New Workloads
+                  </span>
+                  <h4 className="text-lg font-extrabold text-slate-950 mt-1.5">
+                    Choose a Dataset or Add Workloads Manually
+                  </h4>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Select one of the 3 benchmark trace datasets below to populate your workspace, or add individual workloads manually.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowCreateNewOptions(false)}
+                  className="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-xs font-bold text-slate-700 transition-colors cursor-pointer self-start"
+                >
+                  ← Back
+                </button>
+              </div>
+
+              {/* 3 Datasets to choose from */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div
+                  onClick={() => handleLoadTracePreset('google')}
+                  className="p-5 rounded-xl border-2 border-slate-200 hover:border-slate-950 hover:bg-slate-50/70 transition-all cursor-pointer flex flex-col justify-between group space-y-4"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold">
+                        DATASET 01 · 500 WORKLOADS
                       </span>
                     </div>
-                  </td>
-                  <td className="px-4 py-3.5 text-slate-700 font-mono font-medium">{wl.arrivalTime}</td>
-                  <td className="px-4 py-3.5 font-bold text-slate-950 font-mono">{wl.cpuRequired}c</td>
-                  <td className="px-4 py-3.5 font-mono">
-                    <span className="text-emerald-800 font-bold">{wl.predictedCpu || wl.cpuRequired}c</span>
-                    <span className="text-slate-400"> / </span>
-                    <span className="text-slate-800 font-medium">{wl.predictedDuration || wl.duration}h</span>
-                    <span className="ml-1.5 text-[9px] px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
-                      RF 94%
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 text-slate-700 font-mono">{wl.memoryRequired} GB</td>
-                  <td className="px-4 py-3.5 text-slate-700 font-mono">{wl.duration}h</td>
-                  <td className="px-4 py-3.5 font-mono text-slate-950 font-medium">{wl.deadline}</td>
-                  <td className="px-4 py-3.5">
-                    <StatusBadge
-                      type="sla"
-                      label={wl.slaStatus}
-                      status={wl.slaStatus === 'COMPLIANT' ? 'success' : 'warning'}
-                      size="sm"
-                    />
-                  </td>
-                  <td className="px-4 py-3.5 font-mono text-slate-950 font-bold">
-                    {wl.assignedPoolId || wl.assignedDcId || '-'}
-                  </td>
-                  <td className="px-4 py-3.5 font-mono font-semibold text-slate-950">
-                    TS-{wl.assignedTimeSlot || '00'}
-                  </td>
-                  <td className="px-4 py-3.5 text-right space-x-1" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => {
-                        setEditWorkload(wl);
-                        setIsEditModalOpen(true);
-                      }}
-                      title="Edit Workload"
-                      className="p-1.5 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-950 transition-colors cursor-pointer"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={(e) => handleDeleteWorkload(wl.id, e)}
-                      title="Delete Workload"
-                      className="p-1.5 rounded hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <h5 className="text-sm font-extrabold text-slate-950">
+                      Google Cluster Trace v2
+                    </h5>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      500 production heterogeneous CPU/RAM microservices with tight SLA deadline slack.
+                    </p>
+                  </div>
+                  <button className="w-full py-2 rounded-lg bg-slate-100 text-slate-900 group-hover:bg-slate-950 group-hover:text-white text-xs font-bold transition-colors cursor-pointer">
+                    Select Dataset 1 (500)
+                  </button>
+                </div>
+
+                <div
+                  onClick={() => handleLoadTracePreset('alibaba')}
+                  className="p-5 rounded-xl border-2 border-slate-200 hover:border-slate-950 hover:bg-slate-50/70 transition-all cursor-pointer flex flex-col justify-between group space-y-4"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-100 text-purple-900 font-bold">
+                        DATASET 02 · 750 WORKLOADS
+                      </span>
+                    </div>
+                    <h5 className="text-sm font-extrabold text-slate-950">
+                      Alibaba Cloud GPU & AI
+                    </h5>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      750 high-memory deep learning training & distributed graph analytics batch workloads.
+                    </p>
+                  </div>
+                  <button className="w-full py-2 rounded-lg bg-slate-100 text-slate-900 group-hover:bg-slate-950 group-hover:text-white text-xs font-bold transition-colors cursor-pointer">
+                    Select Dataset 2 (750)
+                  </button>
+                </div>
+
+                <div
+                  onClick={() => handleLoadTracePreset('azure')}
+                  className="p-5 rounded-xl border-2 border-slate-200 hover:border-slate-950 hover:bg-slate-50/70 transition-all cursor-pointer flex flex-col justify-between group space-y-4"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-bold">
+                        DATASET 03 · 1,000 WORKLOADS
+                      </span>
+                    </div>
+                    <h5 className="text-sm font-extrabold text-slate-950">
+                      Azure VM Fleet Trace
+                    </h5>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      1,000 multi-regional extended duration batch compute jobs with variable arrival intervals.
+                    </p>
+                  </div>
+                  <button className="w-full py-2 rounded-lg bg-slate-100 text-slate-900 group-hover:bg-slate-950 group-hover:text-white text-xs font-bold transition-colors cursor-pointer">
+                    Select Dataset 3 (1,000)
+                  </button>
+                </div>
+              </div>
+
+              {/* Divider + Manual Workload Addition Option */}
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-slate-200" />
+                <span className="flex-shrink mx-4 text-xs font-bold uppercase tracking-widest text-slate-400">
+                  Or Add Manually
+                </span>
+                <div className="flex-grow border-t border-slate-200" />
+              </div>
+
+              <div className="p-5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h5 className="text-sm font-bold text-slate-950">
+                    Prefer to build your workload list from scratch?
+                  </h5>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Define custom CPU cores, RAM footprint, arrival timestamps, and SLA deadlines for each individual job.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsAddModalOpen(true)}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-colors shrink-0 cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Workloads Manually</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      </div>
+      ) : (
+        <>
+          {/* Architecture Insight: ML Predictor vs Optimizer */}
+          <div className="p-4 rounded-xl bg-slate-900 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm border border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-white tracking-wide uppercase">Stage 02: Workload Demand Prediction Model</span>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-400/20 text-emerald-300 border border-emerald-400/30 font-bold">
+                    Random Forest Regressor (R² = 0.94)
+                  </span>
+                </div>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  The Random Forest model predicts actual runtime CPU/RAM utilization and execution duration from trace characteristics. The NSGA-II scheduler then uses these predictions to evaluate optimal <strong className="text-white">WHERE (Resource Pool)</strong> + <strong className="text-white">WHEN (Time Slot)</strong> placements.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* KPI Stats Bar */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+                <span>Aggregated CPU Load</span>
+                <Cpu className="w-4 h-4 text-slate-900" />
+              </div>
+              <div className="text-xl font-mono font-extrabold text-slate-950">{totalCores.toLocaleString()} Cores</div>
+              <p className="text-[11px] text-slate-500 mt-1">Across all trace workloads</p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+                <span>Aggregated RAM Buffer</span>
+                <HardDrive className="w-4 h-4 text-slate-900" />
+              </div>
+              <div className="text-xl font-mono font-extrabold text-slate-950">{totalRam.toLocaleString()} GB</div>
+              <p className="text-[11px] text-slate-500 mt-1">Dynamic working memory</p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+                <span>Mean Duration</span>
+                <Clock className="w-4 h-4 text-slate-900" />
+              </div>
+              <div className="text-xl font-mono font-extrabold text-slate-950">{avgDuration} hrs</div>
+              <p className="text-[11px] text-slate-500 mt-1">Discrete execution window</p>
+            </div>
+
+            <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-sm">
+              <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+                <span>SLA Compliance</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-600" />
+              </div>
+              <div className="text-xl font-mono font-extrabold text-slate-950">{compliantPercent}%</div>
+              <p className="text-[11px] text-emerald-700 font-semibold mt-1">{compliantCount} / {workloads.length} on-time</p>
+            </div>
+          </div>
+
+          {/* Search & Filters */}
+          <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="relative w-full sm:w-80">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search workloads by ID, name, or pool..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-300 rounded-lg pl-9 pr-4 py-2 text-sm text-slate-950 placeholder-slate-400 focus:outline-none focus:border-slate-950 focus:bg-white transition-colors"
+              />
+            </div>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <SlidersHorizontal className="w-4 h-4 text-slate-500" />
+              <span className="text-xs text-slate-600 font-semibold uppercase tracking-wider">Status:</span>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-xs text-slate-950 focus:outline-none focus:border-slate-950 focus:bg-white transition-colors font-semibold"
+              >
+                <option value="ALL">All Statuses ({workloads.length})</option>
+                <option value="SCHEDULED">Scheduled</option>
+                <option value="RUNNING">Running</option>
+                <option value="COMPLETED">Completed</option>
+                <option value="PENDING">Pending</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Workload Table */}
+          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-50 text-slate-600 uppercase font-sans border-b border-slate-200">
+                  <tr>
+                    <th className="px-4 py-3 font-bold">Workload ID & Name</th>
+                    <th className="px-4 py-3 font-bold">Arrival</th>
+                    <th className="px-4 py-3 font-bold">Requested CPU</th>
+                    <th className="px-4 py-3 font-bold">RF Predicted</th>
+                    <th className="px-4 py-3 font-bold">RAM (GB)</th>
+                    <th className="px-4 py-3 font-bold">Duration</th>
+                    <th className="px-4 py-3 font-bold">Deadline</th>
+                    <th className="px-4 py-3 font-bold">SLA Margin</th>
+                    <th className="px-4 py-3 font-bold">Assigned Pool</th>
+                    <th className="px-4 py-3 font-bold">Slot</th>
+                    <th className="px-4 py-3 font-bold text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 text-slate-800">
+                  {filteredWorkloads.map((wl) => (
+                    <tr
+                      key={wl.id}
+                      onClick={() => setSelectedWorkload(wl)}
+                      className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
+                    >
+                      <td className="px-4 py-3.5 font-medium">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-slate-900 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 text-[11px] font-bold">
+                            {wl.id}
+                          </span>
+                          <span className="text-slate-950 font-semibold group-hover:text-slate-700 transition-colors">
+                            {wl.name}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3.5 text-slate-700 font-mono font-medium">{wl.arrivalTime}</td>
+                      <td className="px-4 py-3.5 font-bold text-slate-950 font-mono">{wl.cpuRequired}c</td>
+                      <td className="px-4 py-3.5 font-mono">
+                        <span className="text-emerald-800 font-bold">{wl.predictedCpu || wl.cpuRequired}c</span>
+                        <span className="text-slate-400"> / </span>
+                        <span className="text-slate-800 font-medium">{wl.predictedDuration || wl.duration}h</span>
+                        <span className="ml-1.5 text-[9px] px-1 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200">
+                          RF 94%
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5 text-slate-700 font-mono">{wl.memoryRequired} GB</td>
+                      <td className="px-4 py-3.5 text-slate-700 font-mono">{wl.duration}h</td>
+                      <td className="px-4 py-3.5 font-mono text-slate-950 font-medium">{wl.deadline}</td>
+                      <td className="px-4 py-3.5">
+                        <StatusBadge
+                          type="sla"
+                          label={wl.slaStatus}
+                          status={wl.slaStatus === 'COMPLIANT' ? 'success' : 'warning'}
+                          size="sm"
+                        />
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-slate-950 font-bold">
+                        {wl.assignedPoolId || wl.assignedDcId || '-'}
+                      </td>
+                      <td className="px-4 py-3.5 font-mono font-semibold text-slate-950">
+                        TS-{wl.assignedTimeSlot || '00'}
+                      </td>
+                      <td className="px-4 py-3.5 text-right space-x-1" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => {
+                            setEditWorkload(wl);
+                            setIsEditModalOpen(true);
+                          }}
+                          title="Edit Workload"
+                          className="p-1.5 rounded hover:bg-slate-200 text-slate-600 hover:text-slate-950 transition-colors cursor-pointer"
+                        >
+                          <Edit2 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={(e) => handleDeleteWorkload(wl.id, e)}
+                          title="Delete Workload"
+                          className="p-1.5 rounded hover:bg-rose-100 text-slate-400 hover:text-rose-600 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Workload Detail Drawer */}
       <Drawer
@@ -643,6 +875,88 @@ export const Workloads: React.FC = () => {
         )}
       </Drawer>
 
+      {/* Create New Workloads Modal */}
+      <Modal
+        isOpen={isCreateNewModalOpen}
+        onClose={() => setIsCreateNewModalOpen(false)}
+        title="Create New Workloads"
+        subtitle="Choose from 3 benchmark datasets or add workloads manually"
+        maxWidth="xl"
+      >
+        <div className="space-y-4">
+          {importNotice && (
+            <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs font-semibold flex items-center gap-2 animate-fade-in">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              <span>{importNotice}</span>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <div
+              onClick={() => handleLoadTracePreset('google')}
+              className="p-4 rounded-xl border border-slate-200 hover:border-slate-950 hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-between group"
+            >
+              <div>
+                <div className="flex items-center gap-2">
+                  <h5 className="text-sm font-bold text-slate-950">1. Google Cluster Trace v2 (Production)</h5>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold">500 WORKLOADS</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">Heterogeneous CPU/RAM microservices with tight deadline slack</p>
+              </div>
+              <button className="px-3 py-1.5 rounded-md bg-slate-100 text-slate-900 group-hover:bg-slate-950 group-hover:text-white text-xs font-bold transition-colors">
+                Select Dataset
+              </button>
+            </div>
+
+            <div
+              onClick={() => handleLoadTracePreset('alibaba')}
+              className="p-4 rounded-xl border border-slate-200 hover:border-slate-950 hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-between group"
+            >
+              <div>
+                <div className="flex items-center gap-2">
+                  <h5 className="text-sm font-bold text-slate-950">2. Alibaba Cloud GPU & AI Workloads</h5>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-100 text-purple-900 font-bold">750 WORKLOADS</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">High-memory deep learning training & graph analytics batches</p>
+              </div>
+              <button className="px-3 py-1.5 rounded-md bg-slate-100 text-slate-900 group-hover:bg-slate-950 group-hover:text-white text-xs font-bold transition-colors">
+                Select Dataset
+              </button>
+            </div>
+
+            <div
+              onClick={() => handleLoadTracePreset('azure')}
+              className="p-4 rounded-xl border border-slate-200 hover:border-slate-950 hover:bg-slate-50 transition-all cursor-pointer flex items-center justify-between group"
+            >
+              <div>
+                <div className="flex items-center gap-2">
+                  <h5 className="text-sm font-bold text-slate-950">3. Azure VM Fleet Workloads (Multi-Regional)</h5>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-bold">1,000 WORKLOADS</span>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">Extended duration batch compute with variable arrival intervals</p>
+              </div>
+              <button className="px-3 py-1.5 rounded-md bg-slate-100 text-slate-900 group-hover:bg-slate-950 group-hover:text-white text-xs font-bold transition-colors">
+                Select Dataset
+              </button>
+            </div>
+          </div>
+
+          <div className="pt-3 border-t border-slate-200 flex items-center justify-between">
+            <span className="text-xs text-slate-500 font-medium">Want to add custom workloads instead?</span>
+            <button
+              onClick={() => {
+                setIsCreateNewModalOpen(false);
+                setIsAddModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Workloads Manually</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
+
       {/* Dataset Ingestion Modal */}
       <Modal
         isOpen={isImportModalOpen}
@@ -697,7 +1011,7 @@ export const Workloads: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h5 className="text-sm font-bold text-slate-950">Google Cluster Trace v2 (Production)</h5>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold">24 TASKS</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 font-bold">500 WORKLOADS</span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">Heterogeneous CPU/RAM microservices with tight deadline slack</p>
                 </div>
@@ -713,7 +1027,7 @@ export const Workloads: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h5 className="text-sm font-bold text-slate-950">Alibaba Cloud GPU & AI Workloads</h5>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-100 text-purple-900 font-bold">32 TASKS</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-100 text-purple-900 font-bold">750 WORKLOADS</span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">High-memory deep learning training & graph analytics batches</p>
                 </div>
@@ -729,7 +1043,7 @@ export const Workloads: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2">
                     <h5 className="text-sm font-bold text-slate-950">Azure VM Fleet Workloads (Multi-Regional)</h5>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-bold">40 TASKS</span>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-100 text-blue-900 font-bold">1,000 WORKLOADS</span>
                   </div>
                   <p className="text-xs text-slate-500 mt-0.5">Extended duration batch compute with variable arrival intervals</p>
                 </div>
@@ -916,10 +1230,10 @@ export const Workloads: React.FC = () => {
                     onChange={(e) => setSyntheticCount(Number(e.target.value))}
                     className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-mono font-bold"
                   >
-                    <option value={12}>12 Tasks (Light)</option>
-                    <option value={24}>24 Tasks (Standard Horizon)</option>
-                    <option value={48}>48 Tasks (High Density)</option>
-                    <option value={96}>96 Tasks (Stress Test)</option>
+                    <option value={500}>500 Workloads (Standard Trace)</option>
+                    <option value={750}>750 Workloads (High Volume)</option>
+                    <option value={1000}>1,000 Workloads (Hyperscale Fleet)</option>
+                    <option value={1500}>1,500 Workloads (Stress Test)</option>
                   </select>
                 </div>
                 <div>

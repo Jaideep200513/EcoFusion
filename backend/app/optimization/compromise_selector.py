@@ -43,7 +43,8 @@ def select_best_compromise_solution(
             weights.carbon * norm_c +
             weights.energy * norm_e +
             weights.cost * norm_dollar +
-            weights.sla * norm_sla
+            weights.sla * norm_sla +
+            (sol.unscheduled_workloads * 100.0)
         )
 
         sol.score = round(float(total_score), 4)

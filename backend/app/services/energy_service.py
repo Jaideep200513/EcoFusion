@@ -43,21 +43,43 @@ def calculate_workload_energy(
     slot_duration_hours: float = 1.0
 ) -> float:
     """
-    Calculate total energy allocated to a specific workload across all occupied time slots.
-    Allocates resource pool energy proportionally according to the workload's CPU share.
+    Calculate total facility energy (kWh) allocated to a specific workload across all occupied time slots.
+    
+    Mathematical Model:
+      u(p, h) = min(1.0, used_cpu(p, h) / cpu_capacity(p))
+      P_IT(w, p, h) = (c_w / cpu_capacity(p)) * [ P_idle(p) + (P_max(p) - P_idle(p)) * (0.45 + 0.55 * u(p, h)) ]
+      PUE(p, h) = max(1.05, pue_base(p) + pue_offset(p, h))
+      E_facility(w, p, s) = sum_{h=s}^{s+d-1} P_IT(w, p, h) * slot_duration_hours * PUE(p, h)
     """
+    if pool.cpu_capacity <= 0 or duration_slots <= 0:
+        return 0.0
+
     total_wl_energy_kwh = 0.0
+    cpu_fraction = min(1.0, max(0.0, workload.cpu_required / pool.cpu_capacity))
+    loc_lower = (pool.location or "").lower()
+    is_mumbai = "mumbai" in loc_lower or "bom" in pool.id.lower()
+    is_singapore = "singapore" in loc_lower or "sin" in pool.id.lower()
 
     for slot_idx in range(start_slot_id, start_slot_id + duration_slots):
         used = capacity_tracker.get_used_capacity(pool.id, slot_idx)
         used_cpu = max(workload.cpu_required, used["cpu"])
+        utilization = min(1.0, max(0.0, used_cpu / pool.cpu_capacity))
 
-        pool_energy = calculate_pool_slot_energy(pool, used_cpu, slot_duration_hours)
-        pool_total_kwh = pool_energy["energy_total_kwh"]
+        # Diurnal thermal cooling PUE offset
+        pue_offset = 0.0
+        if 0 <= slot_idx < len(capacity_tracker.slots):
+            base_offset = getattr(capacity_tracker.slots[slot_idx], "pue_offset", 0.0)
+            if base_offset > 0:
+                pue_offset = base_offset * (1.35 if is_mumbai else (0.5 if is_singapore else 1.0))
+            else:
+                pue_offset = base_offset * (1.25 if is_singapore else 1.0)
 
-        # Proportional share based on workload CPU / total used CPU in pool
-        cpu_share = workload.cpu_required / used_cpu if used_cpu > 0 else 0.0
-        wl_slot_energy = pool_total_kwh * cpu_share
-        total_wl_energy_kwh += wl_slot_energy
+        effective_pue = max(1.05, pool.pue + pue_offset)
+        it_power_kw = cpu_fraction * (
+            pool.idle_power + (pool.max_power - pool.idle_power) * (0.45 + 0.55 * utilization)
+        )
+        e_it_kwh = it_power_kw * slot_duration_hours
+        e_facility_kwh = e_it_kwh * effective_pue
+        total_wl_energy_kwh += e_facility_kwh
 
     return round(total_wl_energy_kwh, 4)

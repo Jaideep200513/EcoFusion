@@ -32,18 +32,50 @@ interface ResultsProps {
 
 export const Results: React.FC<ResultsProps> = ({ latestResult }) => {
   const [activeTab, setActiveTab] = useState<'summary' | 'carbon' | 'cost' | 'sla' | 'pareto'>('summary');
-  const [localResult, setLocalResult] = useState<SimulationResult | null>(null);
+  const [currentResult, setCurrentResult] = useState<SimulationResult | null>(() => latestResult || simulatorService.getLatestResult());
   const [paretoPoints, setParetoPoints] = useState<ParetoPoint[]>(() => simulatorService.getLatestParetoSolutions());
 
   useEffect(() => {
+    if (latestResult) {
+      setCurrentResult(latestResult);
+    }
+  }, [latestResult]);
+
+  useEffect(() => {
     const unsubscribe = simulatorService.subscribe(() => {
-      setLocalResult(simulatorService.getLatestResult());
+      setCurrentResult(simulatorService.getLatestResult());
       setParetoPoints([...simulatorService.getLatestParetoSolutions()]);
     });
     return unsubscribe;
   }, []);
 
-  const simResult = localResult || latestResult || simulatorService.getLatestResult();
+  const simResult = currentResult || simulatorService.getLatestResult();
+  const hasValidResult = Boolean(simResult && simResult.totalWorkloads > 0);
+
+  if (!hasValidResult) {
+    return (
+      <div className="space-y-6">
+        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-bold text-slate-950 tracking-tight">Optimization Results Ledger</h3>
+            <p className="text-xs text-slate-600 mt-1">
+              Empirical metrics logged under NSGA-II spatial-temporal optimization.
+            </p>
+          </div>
+        </div>
+
+        <div className="p-12 rounded-2xl bg-white border border-slate-200 shadow-sm text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-slate-950 text-white flex items-center justify-center mx-auto shadow-sm">
+            <BarChart3 className="w-6 h-6 text-emerald-400" />
+          </div>
+          <h4 className="text-lg font-extrabold text-slate-950">No Simulation Results Available</h4>
+          <p className="text-xs text-slate-500 max-w-md mx-auto leading-relaxed">
+            No simulation has been executed yet. Create or import a workload dataset in the <strong className="text-slate-800">Workloads</strong> section, then click <strong className="text-slate-800">Run simulation</strong> to generate results.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // Comparison data directly from genuine simulation execution
   const comparisonData = simResult?.comparisons && simResult.comparisons.length > 0

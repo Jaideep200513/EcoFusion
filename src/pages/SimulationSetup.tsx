@@ -8,23 +8,18 @@ import {
   Leaf,
   Clock,
   RotateCcw,
-  Play,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
 
 interface SimulationSetupProps {
-  onRunSimulation: () => void;
-  onNavigateTab: (tab: DashboardTab) => void;
+  onRunSimulation?: () => void;
+  onNavigateTab?: (tab: DashboardTab) => void;
   isSimulating?: boolean;
 }
 
-export const SimulationSetup: React.FC<SimulationSetupProps> = ({
-  onRunSimulation,
-  onNavigateTab,
-  isSimulating,
-}) => {
+export const SimulationSetup: React.FC<SimulationSetupProps> = () => {
   const initialConfig = simulatorService.getSimulationSetupConfig();
   const [config, setConfig] = useState<SimulationSetupConfig>({ ...initialConfig });
   const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({
@@ -55,34 +50,36 @@ export const SimulationSetup: React.FC<SimulationSetupProps> = ({
     setTimeout(() => setSavedFeedback(false), 1500);
   };
 
-  const handleExecute = () => {
-    onRunSimulation();
-    setTimeout(() => {
-      onNavigateTab('scheduling');
-    }, 700);
-  };
-
   return (
-    <div className="space-y-6 max-w-5xl mx-auto pb-24">
+    <div className="space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-slate-950 tracking-tight">Simulation Setup & Parameter Tuning</h3>
+            <h3 className="text-lg font-bold text-slate-950 tracking-tight">Advanced Simulation Setup & Parameter Tuning</h3>
             <span className="text-xs font-mono px-2.5 py-0.5 rounded bg-slate-100 text-slate-900 border border-slate-200 font-semibold">
-              CONFIGURABLE
+              STEP 04
             </span>
           </div>
           <p className="text-sm text-slate-600 mt-1">
-            Configure workload distributions, regional infrastructure constraints, environmental signals, and algorithm policies.
+            Fine-tune underlying trace characteristics, regional facility hardware constraints, and multi-objective Pareto hyperparameters before proceeding to the scheduler.
           </p>
         </div>
 
-        {savedFeedback && (
-          <span className="text-xs font-mono text-emerald-700 flex items-center gap-1.5 animate-fade-in font-semibold">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Defaults restored
-          </span>
-        )}
+        <div className="flex items-center gap-3 shrink-0">
+          {savedFeedback && (
+            <span className="text-xs font-mono text-emerald-700 flex items-center gap-1.5 animate-fade-in font-semibold">
+              <CheckCircle2 className="w-3.5 h-3.5" /> Defaults restored
+            </span>
+          )}
+          <button
+            onClick={handleReset}
+            className="px-3.5 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-all cursor-pointer flex items-center gap-2 shadow-xs"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-slate-600" />
+            <span>Reset to Defaults</span>
+          </button>
+        </div>
       </div>
 
       {/* Accordion 1: Workload Configuration */}
@@ -136,9 +133,9 @@ export const SimulationSetup: React.FC<SimulationSetupProps> = ({
                 </label>
                 <input
                   type="range"
-                  min={8}
-                  max={64}
-                  step={4}
+                  min={500}
+                  max={2000}
+                  step={50}
                   value={config.numWorkloads}
                   onChange={(e) => handleUpdate('numWorkloads', parseInt(e.target.value, 10))}
                   className="w-full accent-slate-950"
@@ -342,9 +339,12 @@ export const SimulationSetup: React.FC<SimulationSetupProps> = ({
                   onChange={(e) => handleUpdate('algorithm', e.target.value as any)}
                   className="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-slate-950 text-xs font-semibold focus:border-slate-950 focus:bg-white outline-none"
                 >
+                  <option value="ALL_STRATEGIES">All Strategies (Execute & Compare All 7 Models)</option>
                   <option value="ECOFUSION_NSGA2">EcoFusion (NSGA-II Multi-Objective)</option>
                   <option value="CARBON_AWARE">Carbon-Aware Greedy (Greedy spatial)</option>
                   <option value="ENERGY_AWARE">Energy-Aware Greedy (PUE biased)</option>
+                  <option value="COST_AWARE">Cost-Aware Greedy (Tariff biased)</option>
+                  <option value="EDF">Earliest Deadline First (SLA / Latency)</option>
                   <option value="FIRST_FIT">First-Fit Heuristic</option>
                   <option value="RANDOM">Random Baseline</option>
                 </select>
@@ -436,33 +436,6 @@ export const SimulationSetup: React.FC<SimulationSetupProps> = ({
             </div>
           </div>
         )}
-      </div>
-
-      {/* Sticky Bottom Action Bar */}
-      <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 p-4 shadow-lg">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleReset}
-              className="px-4 py-2 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 text-xs font-semibold text-slate-800 transition-all cursor-pointer flex items-center gap-2 shadow-sm"
-            >
-              <RotateCcw className="w-3.5 h-3.5 text-slate-600" />
-              <span>Reset to Defaults</span>
-            </button>
-            <span className="hidden sm:inline text-[11px] font-mono text-slate-500 font-medium">
-              Random Seed: {config.randomSeed}
-            </span>
-          </div>
-
-          <button
-            onClick={handleExecute}
-            disabled={isSimulating}
-            className="px-6 py-2.5 rounded-lg bg-slate-950 hover:bg-slate-800 text-white text-xs font-semibold transition-all shadow-sm cursor-pointer flex items-center gap-2"
-          >
-            <Play className="w-3.5 h-3.5 fill-current text-white" />
-            <span>{isSimulating ? 'Executing Simulation...' : 'Run Simulation →'}</span>
-          </button>
-        </div>
       </div>
     </div>
   );

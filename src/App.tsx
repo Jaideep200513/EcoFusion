@@ -38,7 +38,7 @@ export function App() {
       onTabChange={setActiveTab}
       onNavigateLanding={() => setCurrentView('landing')}
     >
-      {({ latestResult, triggerSimulation, isSimulating }) => (
+      {({ latestResult, triggerSimulation, isSimulating, openWalkthrough }) => (
         <ErrorBoundary key={activeTab}>
           {(() => {
             switch (activeTab) {
@@ -49,6 +49,7 @@ export function App() {
                 onRunSimulation={triggerSimulation}
                 latestResult={latestResult}
                 isSimulating={isSimulating}
+                onOpenWalkthrough={openWalkthrough}
               />
             );
           case 'workloads':

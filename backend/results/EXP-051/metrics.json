@@ -1,0 +1,23 @@
+{
+  "experiment_id": "EXP-051",
+  "scheduler_name": "carbon_aware",
+  "total_workloads": 30,
+  "scheduled_workloads": 30,
+  "unscheduled_workloads": 0,
+  "total_energy_kwh": 2249.18,
+  "total_carbon_kg": 686.01,
+  "total_cost": 573.95,
+  "sla_violations": 0,
+  "sla_violation_rate": 0.0,
+  "average_completion_time": 14.63,
+  "execution_metadata": {
+    "execution_time_ms": 18.38,
+    "timestamp": "2026-11-18T11:36:43.907467+00:00",
+    "seed_used": 42,
+    "version": "0.3.0",
+    "extra": {
+      "resource_pools_count": 3,
+      "time_slots_count": 24
+    }
+  }
+}

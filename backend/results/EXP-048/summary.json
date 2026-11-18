@@ -1,0 +1,11 @@
+{
+  "experiment_id": "EXP-048",
+  "timestamp": "2026-11-17T15:45:43.434413+00:00",
+  "scheduler_name": "carbon_aware",
+  "random_seed": 42,
+  "total_energy_kwh": 13729.53,
+  "total_carbon_kg": 5786.03,
+  "total_cost_usd": 2461.51,
+  "sla_violation_rate_percent": 0.0,
+  "scheduled_ratio": "40/40"
+}

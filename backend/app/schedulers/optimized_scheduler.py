@@ -86,8 +86,12 @@ class CarbonAwareScheduler(BaseScheduler):
                         energy_kwh = calculate_workload_energy(
                             wl, pool, s_idx, duration_slots, capacity_tracker, slot_duration_hours
                         )
-                        carbon_kg = calculate_workload_carbon(energy_kwh, pool)
-                        cost_usd = calculate_workload_cost(energy_kwh, pool)
+                        carbon_kg = calculate_workload_carbon(
+                            energy_kwh, pool, s_idx, duration_slots, time_slots
+                        )
+                        cost_usd = calculate_workload_cost(
+                            energy_kwh, pool, s_idx, duration_slots, time_slots
+                        )
 
                         # Primary sort: SLA feasible first, then minimum carbon emissions
                         candidates.append({
@@ -195,8 +199,12 @@ class EnergyAwareScheduler(BaseScheduler):
                         energy_kwh = calculate_workload_energy(
                             wl, pool, s_idx, duration_slots, capacity_tracker, slot_duration_hours
                         )
-                        carbon_kg = calculate_workload_carbon(energy_kwh, pool)
-                        cost_usd = calculate_workload_cost(energy_kwh, pool)
+                        carbon_kg = calculate_workload_carbon(
+                            energy_kwh, pool, s_idx, duration_slots, time_slots
+                        )
+                        cost_usd = calculate_workload_cost(
+                            energy_kwh, pool, s_idx, duration_slots, time_slots
+                        )
 
                         # Primary sort: SLA feasible first, then minimum energy
                         candidates.append({
@@ -304,8 +312,12 @@ class CostAwareScheduler(BaseScheduler):
                         energy_kwh = calculate_workload_energy(
                             wl, pool, s_idx, duration_slots, capacity_tracker, slot_duration_hours
                         )
-                        carbon_kg = calculate_workload_carbon(energy_kwh, pool)
-                        cost_usd = calculate_workload_cost(energy_kwh, pool)
+                        carbon_kg = calculate_workload_carbon(
+                            energy_kwh, pool, s_idx, duration_slots, time_slots
+                        )
+                        cost_usd = calculate_workload_cost(
+                            energy_kwh, pool, s_idx, duration_slots, time_slots
+                        )
 
                         # Primary sort: SLA feasible first, then minimum cost
                         candidates.append({
@@ -414,10 +426,15 @@ class EDFScheduler(BaseScheduler):
                         energy_kwh = calculate_workload_energy(
                             wl, pool, s_idx, duration_slots, capacity_tracker, slot_duration_hours
                         )
-                        carbon_kg = calculate_workload_carbon(energy_kwh, pool)
-                        cost_usd = calculate_workload_cost(energy_kwh, pool)
+                        carbon_kg = calculate_workload_carbon(
+                            energy_kwh, pool, s_idx, duration_slots, time_slots
+                        )
+                        cost_usd = calculate_workload_cost(
+                            energy_kwh, pool, s_idx, duration_slots, time_slots
+                        )
 
-                        # Primary sort: earliest start time (minimal queueing latency)
+                        # Primary sort: earliest start time (minimal queueing latency), tie-break by lowest pool utilization
+                        pool_util = capacity_tracker.get_utilization(pool.id, s_idx)
                         candidates.append({
                             "pool": pool,
                             "slot": slot,
@@ -427,7 +444,7 @@ class EDFScheduler(BaseScheduler):
                             "energy_kwh": energy_kwh,
                             "carbon_kg": carbon_kg,
                             "cost_usd": cost_usd,
-                            "score": slot.start_time if sla_feasible else slot.start_time + 1000.0,
+                            "score": (slot.start_time + pool_util * 0.1) if sla_feasible else (slot.start_time + 1000.0 + pool_util * 0.1),
                         })
 
             if candidates:

@@ -22,10 +22,10 @@ export const Experiments: React.FC = () => {
   const [expForm, setExpForm] = useState({
     name: 'Multi-Objective Pareto Sensitivity Test',
     datasetName: 'Google Cluster Trace v2 (Production)',
-    numWorkloads: 24,
+    numWorkloads: 500,
     numDataCenters: 3,
     timeSlotDuration: 60,
-    algorithm: 'ECOFUSION_NSGA2',
+    algorithm: 'ALL_STRATEGIES',
     randomSeed: 101,
     carbonWeight: 0.4,
     energyWeight: 0.3,
@@ -175,7 +175,14 @@ export const Experiments: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-slate-800">
-              {experiments.map((exp) => (
+              {experiments.length === 0 ? (
+                <tr>
+                  <td colSpan={9} className="px-4 py-10 text-center text-slate-500 text-xs">
+                    No experiments recorded yet. Run a simulation or click <strong>New Experiment</strong> to create one.
+                  </td>
+                </tr>
+              ) : (
+                experiments.map((exp) => (
                 <tr
                   key={exp.id}
                   className="hover:bg-slate-50/80 transition-colors cursor-pointer group"
@@ -236,7 +243,8 @@ export const Experiments: React.FC = () => {
                     </button>
                   </td>
                 </tr>
-              ))}
+              ))
+              )}
             </tbody>
           </table>
         </div>
@@ -282,9 +290,12 @@ export const Experiments: React.FC = () => {
                 onChange={(e) => setExpForm({ ...expForm, algorithm: e.target.value })}
                 className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-bold text-slate-950 font-mono"
               >
+                <option value="ALL_STRATEGIES">All Strategies (Full 7-Model Benchmark)</option>
                 <option value="ECOFUSION_NSGA2">EcoFusion NSGA-II Multi-Objective</option>
                 <option value="CARBON_AWARE">Carbon-Aware Heuristic</option>
                 <option value="ENERGY_AWARE">Energy-Aware Heuristic</option>
+                <option value="COST_AWARE">Cost-Aware Heuristic</option>
+                <option value="EDF">Earliest Deadline First (EDF)</option>
                 <option value="FIRST_FIT">First-Fit Chronological</option>
                 <option value="RANDOM">Random Placement Baseline</option>
               </select>
@@ -296,8 +307,8 @@ export const Experiments: React.FC = () => {
               <label className="block text-xs font-bold text-slate-700 mb-1">Workload Count</label>
               <input
                 type="number"
-                min={4}
-                max={500}
+                min={500}
+                max={5000}
                 value={expForm.numWorkloads}
                 onChange={(e) => setExpForm({ ...expForm, numWorkloads: Number(e.target.value) })}
                 className="w-full bg-slate-50 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono font-bold"

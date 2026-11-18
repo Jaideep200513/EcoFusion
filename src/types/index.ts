@@ -120,7 +120,7 @@ export interface SimulationSetupConfig {
   // Scheduling Configuration
   timeSlotDurationMinutes: number;
   simulationHorizonHours: number;
-  algorithm: 'ECOFUSION_NSGA2' | 'RANDOM' | 'FIRST_FIT' | 'ENERGY_AWARE' | 'CARBON_AWARE' | 'COST_AWARE' | 'EDF';
+  algorithm: 'ALL_STRATEGIES' | 'ECOFUSION_NSGA2' | 'RANDOM' | 'FIRST_FIT' | 'ENERGY_AWARE' | 'CARBON_AWARE' | 'COST_AWARE' | 'EDF';
   slaPolicy: 'STRICT_ZERO_TOLERANCE' | 'PENALTY_BOUNDED' | 'BEST_EFFORT';
 
   // Reproducibility
@@ -139,7 +139,7 @@ export interface SimulationConfig {
   energyWeight: number; // 0..1
   costWeight: number; // 0..1
   maxSlaViolationRate: number; // %
-  algorithm: 'ECOFUSION_NSGA2' | 'RANDOM' | 'FIRST_FIT' | 'CONVENTIONAL_COST' | 'ENERGY_AWARE' | 'CARBON_AWARE' | 'COST_AWARE' | 'EDF';
+  algorithm: 'ALL_STRATEGIES' | 'ECOFUSION_NSGA2' | 'RANDOM' | 'FIRST_FIT' | 'CONVENTIONAL_COST' | 'ENERGY_AWARE' | 'CARBON_AWARE' | 'COST_AWARE' | 'EDF';
 }
 
 export interface Experiment {

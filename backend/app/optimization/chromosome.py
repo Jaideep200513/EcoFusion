@@ -35,8 +35,8 @@ def decode_chromosome(
 
     for gene in chromosome:
         p_idx, s_idx = decode_gene(int(gene), num_slots)
-        p_idx = min(p_idx, num_pools - 1)
-        s_idx = min(s_idx, num_slots - 1)
+        p_idx = max(0, min(p_idx, num_pools - 1))
+        s_idx = max(0, min(s_idx, num_slots - 1))
         assignments.append((pools[p_idx], slots[s_idx]))
 
     return assignments

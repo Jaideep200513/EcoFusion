@@ -1,0 +1,24 @@
+{
+  "experiment_id": "EXP-044",
+  "algorithm_name": "EcoFusion NSGA-II",
+  "total_workloads": 24,
+  "scheduled_workloads": 24,
+  "unscheduled_workloads": 0,
+  "total_energy_kwh": 5237.05,
+  "total_carbon_kg": 3037.49,
+  "total_cost": 523.7,
+  "sla_violations": 0,
+  "sla_violation_rate": 0.0,
+  "average_completion_time": 3.6,
+  "execution_metadata": {
+    "execution_time_ms": 4919.42,
+    "timestamp": "2026-10-15T17:33:16.833751+00:00",
+    "seed_used": 42,
+    "version": "0.4.0",
+    "extra": {
+      "population_size": 50,
+      "generations": 50,
+      "pareto_solutions_count": 2
+    }
+  }
+}

@@ -72,8 +72,12 @@ class FirstFitScheduler(BaseScheduler):
                         energy_kwh = calculate_workload_energy(
                             wl, pool, slot_idx, duration_slots, capacity_tracker, slot_duration_hours
                         )
-                        carbon_kg = calculate_workload_carbon(energy_kwh, pool)
-                        cost_usd = calculate_workload_cost(energy_kwh, pool)
+                        carbon_kg = calculate_workload_carbon(
+                            energy_kwh, pool, slot_idx, duration_slots, time_slots
+                        )
+                        cost_usd = calculate_workload_cost(
+                            energy_kwh, pool, slot_idx, duration_slots, time_slots
+                        )
                         sla_met = is_sla_met(completion_time, wl.deadline)
 
                         decisions.append(

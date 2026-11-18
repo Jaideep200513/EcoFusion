@@ -70,8 +70,8 @@ class EcoFusionSchedulingProblem(ElementwiseProblem):
         for wl_idx, wl in enumerate(self.workloads):
             gene = int(x[wl_idx])
             p_idx, s_idx = decode_gene(gene, self.num_slots)
-            p_idx = min(p_idx, self.num_pools - 1)
-            s_idx = min(s_idx, self.num_slots - 1)
+            p_idx = max(0, min(p_idx, self.num_pools - 1))
+            s_idx = max(0, min(s_idx, self.num_slots - 1))
 
             pool = self.pools[p_idx]
             slot = self.slots[s_idx]
@@ -91,8 +91,12 @@ class EcoFusionSchedulingProblem(ElementwiseProblem):
                 energy_kwh = calculate_workload_energy(
                     wl, pool, s_idx, duration_slots, capacity_tracker, self.slot_duration_hours
                 )
-                carbon_kg = calculate_workload_carbon(energy_kwh, pool)
-                cost_usd = calculate_workload_cost(energy_kwh, pool)
+                carbon_kg = calculate_workload_carbon(
+                    energy_kwh, pool, s_idx, duration_slots, self.slots
+                )
+                cost_usd = calculate_workload_cost(
+                    energy_kwh, pool, s_idx, duration_slots, self.slots
+                )
                 sla_met = is_sla_met(completion_time, wl.deadline)
 
                 total_energy += energy_kwh

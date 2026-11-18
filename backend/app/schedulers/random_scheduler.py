@@ -86,8 +86,12 @@ class RandomScheduler(BaseScheduler):
                 energy_kwh = calculate_workload_energy(
                     wl, selected_pool, selected_slot_idx, duration_slots, capacity_tracker, slot_duration_hours
                 )
-                carbon_kg = calculate_workload_carbon(energy_kwh, selected_pool)
-                cost_usd = calculate_workload_cost(energy_kwh, selected_pool)
+                carbon_kg = calculate_workload_carbon(
+                    energy_kwh, selected_pool, selected_slot_idx, duration_slots, time_slots
+                )
+                cost_usd = calculate_workload_cost(
+                    energy_kwh, selected_pool, selected_slot_idx, duration_slots, time_slots
+                )
                 sla_met = is_sla_met(completion_time, wl.deadline)
 
                 decisions.append(
